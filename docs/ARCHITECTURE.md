@@ -19,10 +19,14 @@
 
 The JSON export contains source references and can include quoted private content. It should never be pushed to GitHub by default.
 
+## 0.2 evidence workflow
+
+`extension/streaming.js` parses recognized ChatGPT `chat.html` embedded JSON arrays and large root-array JSON by sequential bounded objects. `extension/qa.js` performs local lexical matching against **user** messages, retrieving a source hash, conversation/message index and excerpt. The answers are **extractive**, not AI synthesis. A selected result goes through `SiranBrain.proposeEvidence` for a fresh source/role/hash check, creates a pending candidate, and only appears in Digital Self after manual review. `SiranDB.forEachConversation` uses an IndexedDB cursor to bound read memory; it is **not yet a persistent inverted index**.
+
 ## Operational limitations
 
-- Keyword search currently iterates local records; large imports require an IndexedDB index / streaming worker redesign.
-- ZIP is loaded fully and has a protective 180 MiB guard. ZIP64/multi-gigabyte workflows are explicitly out of scope for this first release.
+- Keyword search still iterates local records; question-answer mode uses an IndexedDB cursor, but large archives need a persistent index, worker-based cancellation and performance benchmarking.
+- Ordinary ZIP is loaded fully and has a protective 180 MiB guard; ZIP64 remains unsupported. Separate root-array JSON and ChatGPT `chat.html` streaming have a per-conversation 64 MiB limit.
 - Files such as `chat.html` may contain rich content or conversation branches not represented by these import adapters.
 - Drive restore and Google OAuth require real-account end-to-end validation; mock tests are not a substitute.
 - Future independent plugins/MCP clients need an explicit authorized transport. Browser local data isn't globally reachable.

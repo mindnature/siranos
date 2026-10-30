@@ -3,9 +3,10 @@ const $=id=>document.getElementById(id),N=(tag,cls,text)=>{const el=document.cre
 const displayTime=v=>{if(!v)return '日期未知';const d=new Date(typeof v==='number'&&v<1e12?v*1000:v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString('zh-CN');};
 const send=type=>chrome.runtime.sendMessage({type});
 const message=(id,text)=>{$(id).textContent=String(text);};
-let reviewMd='';let busy=false;
+let reviewMd='';let busy=false;let importAbort=null;
+$('cancelImport').addEventListener('click',()=>{if(importAbort)importAbort.abort();});
 function goto(view){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===`view-${view}`));document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
- const titles={dashboard:'总览',import:'导入与备份',search:'原文检索',memories:'长期记忆',projects:'知识项目',persona:'数字人格',review:'七日复盘',settings:'设置与恢复'};
+ const titles={dashboard:'总览',import:'导入与备份',search:'原文检索',qa:'向历史提问',memories:'长期记忆',projects:'知识项目',persona:'数字人格',review:'七日复盘',settings:'设置与恢复'};
  $('pageTitle').textContent=titles[view]||'个人知识库';location.hash=view;
  if(view==='memories')renderMemories();if(view==='projects')renderProjects();if(view==='persona')renderPersona();if(view==='dashboard')renderDashboard();if(view==='settings')renderSettings();}
 document.querySelectorAll('[data-view],[data-go]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.view||b.dataset.go)));
@@ -29,20 +30,27 @@ $('auto').addEventListener('change',async e=>{await chrome.storage.local.set({sy
 $('folder').addEventListener('click',()=>{const id=$('folder').dataset.id;if(id)chrome.tabs.create({url:`https://drive.google.com/drive/u/0/folders/${encodeURIComponent(id)}`});});
 $('consent').addEventListener('change',()=>{$('importBtn').disabled=!$('consent').checked;});
 $('importBtn').addEventListener('click',async()=>{const files=[...$('file').files];if(!files.length){message('progress','请先选择导出文件');return;}
- if(busy)return;busy=true;$('importBtn').disabled=true;const totals={added:0,updated:0,unchanged:0,failed:0,memories:0,invalidated:0},notes=[];
+ if(busy)return;busy=true;importAbort=new AbortController();$('cancelImport').disabled=false;$('importBtn').disabled=true;const totals={added:0,updated:0,unchanged:0,failed:0,memories:0,invalidated:0},notes=[];
  try{for(const file of files){message('progress','正在解析：'+file.name);try{
-  const data=await SiranImporter.readFile(file,t=>message('progress',t),$('provider').value);notes.push(...data.warnings);
-  for(let i=0;i<data.items.length;i++){const item=data.items[i];try{const state=await SiranImporter.importConversation(item);totals[state]++;
+  let count=0;
+  const accept=async item=>{try{const state=await SiranImporter.importConversation(item);totals[state]++;
     if(state!=='unchanged'){const x=await SiranBrain.onImport(item);totals.memories+=x.created;totals.invalidated+=x.invalidated;}
-   }catch(e){totals.failed++;notes.push(`${item.title}: ${e.message||e}`);}
-   if(i%25===0){message('progress',`${file.name}：已处理 ${i+1}/${data.items.length} 条`);await new Promise(r=>setTimeout(r,0));}
+   }catch(e){totals.failed++;notes.push(`${item.title}: ${String(e.message||e).slice(0,180)}`);}
+   count++;if(count%25===0){message('progress',`${file.name}：已处理 ${count} 条`);await new Promise(r=>setTimeout(r,0));}};
+  const ext=file.name.split('.').at(-1).toLowerCase();
+  if(ext==='html'||(ext==='json'&&file.size>100*1024*1024)){
+    const result=await SiranStreaming.importFile(file,accept,t=>message('progress',t),{signal:importAbort.signal,hint:$('provider').value,onWarning:w=>{if(notes.length<150)notes.push(String(w));}});
+    notes.push(`流式导入：扫描 ${result.items} 个对象、可识别 ${result.recognized} 条；附件和媒体未导入。`);
+  }else{
+    const data=await SiranImporter.readFile(file,t=>message('progress',t),$('provider').value);notes.push(...data.warnings);
+    for(const item of data.items)await accept(item);
   }
  }catch(e){totals.failed++;notes.push(file.name+'：'+String(e.message||e));}}
  message('warnings',notes.length?notes.join('\n'):'未发现明确解析错误，仍需与原始导出数量核对。');
  let cloud='';const st=await chrome.storage.local.get('syncEnabled');if(st.syncEnabled){try{const r=await sync();cloud=`；本轮云端成功 ${r.completed||0} 条`;if(r.error)cloud+='，异常：'+r.error;}catch(e){cloud='；云端同步待重试：'+e.message;}}
  message('progress',`完成：新增 ${totals.added}，更新 ${totals.updated}，去重 ${totals.unchanged}，失败 ${totals.failed}。新增记忆候选 ${totals.memories}，来源变更待复核 ${totals.invalidated}${cloud}。`);
  await refresh();
- }finally{busy=false;$('importBtn').disabled=!$('consent').checked;}});
+ }finally{busy=false;importAbort=null;$('cancelImport').disabled=true;$('importBtn').disabled=!$('consent').checked;}});
 $('rebuild').addEventListener('click',async()=>{if(busy)return;busy=true;$('rebuild').disabled=true;try{const r=await SiranBrain.processExisting((i,total)=>message('progress',`扫描旧记录 ${i}/${total}…`));message('progress',`已扫描 ${r.scanned} 条，新增候选 ${r.created} 条，需复核 ${r.invalidated} 条。`);await refresh();}catch(e){message('progress','补建失败：'+String(e.message||e));}finally{busy=false;$('rebuild').disabled=false;}});
 async function openSource(conversationId,index,quote=''){const rec=await SiranDB.get(conversationId);if(!rec){alert('无法找到原始会话。可能尚未恢复本地数据。');return;}
  const msgs=SiranBrain.msgs(rec);const m=index==null?null:msgs[index];$('dialogTitle').textContent=rec.title||'原始资料';
@@ -55,6 +63,21 @@ async function search(){const query=$('query').value.trim();if(!query){message('
  const rows=await SiranBrain.searchEvidence(query,{provider:$('searchProvider').value,limit:60});message('searchCount',`找到 ${rows.length} 个消息命中（最多展示60条）。`);
  const root=$('results');root.replaceChildren();if(!rows.length){root.append(N('p','hint','未在已导入的资料中找到匹配消息。这不等于历史上从未讨论过。'));return;}
  for(const r of rows){const box=N('article','source-hit'),h=N('h4','',r.conversationTitle||'未命名会话');const meta=N('div','meta',`${r.provider} · ${r.role} · ${displayTime(r.date)} · 消息位置 ${r.messageIndex==null?'未知':r.messageIndex+1}`),body=N('p','',r.excerpt);box.append(h,meta,body,sourceLink(r.conversationId,r.messageIndex,r.excerpt));root.append(box);}}
+// Offline, source-linked question answering. No LLM, no network request.
+async function askHistory(){const q=$('qaQuestion').value.trim();if(!q){message('qaSummary','请输入一个关于历史资料的问题。');return;}
+ const btn=$('qaAsk');btn.disabled=true;message('qaSummary','正在本地扫描已导入的用户发言…');$('qaEvidence').replaceChildren();
+ try{const r=await SiranQA.ask(q);message('qaSummary',r.summary);message('qaCaveat',`${r.caveat} 本次实际检查会话：${r.coverage.scannedConversations}。`);
+  for(const [i,e] of r.evidence.entries()){
+   const card=N('article','source-hit'),head=N('h4','',`证据 ${i+1} · ${e.conversationTitle||'未命名会话'}`),meta=N('p','meta',`${e.provider} · ${displayTime(e.date)} · 消息 ${e.messageIndex+1}`),p=N('p','',e.excerpt),buttons=N('div','buttons');
+   const view=N('button','btn secondary','查看完整原话');view.addEventListener('click',()=>openSource(e.conversationId,e.messageIndex,e.excerpt));
+   const pending=N('button','btn primary','加入记忆审核');pending.addEventListener('click',async()=>{pending.disabled=true;
+    try{const result=await SiranBrain.proposeEvidence(e);pending.textContent=result.created?'已加入待审核':'该原话已经有审核记录';await refresh();}
+    catch(err){pending.disabled=false;alert('加入失败：'+String(err.message||err));}});
+   buttons.append(view,pending);card.append(head,meta,p,buttons);$('qaEvidence').append(card);
+  }
+ }catch(e){message('qaSummary','本地问答失败：'+String(e.message||e));}finally{btn.disabled=false;}}
+$('qaAsk').addEventListener('click',askHistory);
+$('qaQuestion').addEventListener('keydown',e=>{if(e.key==='Enter')askHistory();});
 $('search').addEventListener('click',search);$('query').addEventListener('keydown',e=>{if(e.key==='Enter')search();});
 for(const id of ['memoryStatus','memoryProject'])$(id).addEventListener('change',renderMemories);
 $('refreshMemory').addEventListener('click',renderMemories);
@@ -106,4 +129,4 @@ $('restoreMemories').addEventListener('click',async()=>{const f=$('memoryFile').
 $('restoreCloud').addEventListener('click',async()=>{if(busy)return;busy=true;$('restoreCloud').disabled=true;try{message('restoreLog','正在读取 Google Drive 云端索引与原文…');const r=await send('RESTORE');if(r.error)throw new Error(r.error);
  message('restoreLog',`云端共 ${r.total} 条；已扫描 ${r.position}；剩余 ${r.remaining}。\n本批新增 ${r.stats.added}，一致去重 ${r.stats.unchanged}，版本冲突 ${r.stats.conflict}，失败 ${r.stats.failed}。\n记忆恢复：${JSON.stringify(r.memories||'等待最后一批')}`);await refresh();
  }catch(e){message('restoreLog','恢复失败：'+String(e.message||e));}finally{busy=false;$('restoreCloud').disabled=false;}});
-refresh().then(()=>{const initial=location.hash.slice(1);goto(['dashboard','import','search','memories','projects','persona','review','settings'].includes(initial)?initial:'dashboard');}).catch(e=>console.warn('SiranOS start error',e));
+refresh().then(()=>{const initial=location.hash.slice(1);goto(['dashboard','import','search','qa','memories','projects','persona','review','settings'].includes(initial)?initial:'dashboard');}).catch(e=>console.warn('SiranOS start error',e));
