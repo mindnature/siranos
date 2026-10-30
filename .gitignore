@@ -1,0 +1,26 @@
+# Confidential user exports and browser data
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+chat.html
+conversations*.json
+GPT.zip
+*.bak
+*.backup
+.env
+.env.*
+**/IndexedDB/
+**/Local Extension Settings/
+**/Private Data/
+**/personal*/
+**/*_private.*
+**/*_secrets.*
+# Build/cache
+node_modules/
+dist/
+coverage/
+.DS_Store
+__pycache__/
+.pytest_cache/

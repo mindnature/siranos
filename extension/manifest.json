@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "SiranOS — Personal AI Memory",
+  "version": "0.1.0",
+  "description": "Local-first personal AI memory and evidence-linked digital self; optional Google Drive sync.",
+  "permissions": [
+    "identity",
+    "storage",
+    "alarms",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://www.googleapis.com/*"
+  ],
+  "oauth2": {
+    "client_id": "REPLACE_WITH_YOUR_CHROME_EXTENSION_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "action": {
+    "default_title": "Open SiranOS"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "minimum_chrome_version": "116"
+}
