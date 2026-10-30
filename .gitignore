@@ -31,3 +31,13 @@ google-oauth-token.json
 google-cloud.json
 google-manifest.json
 .siranos/
+
+# Prevent accidental public commit of an example workspace created inside the repository
+SiranOS/
+01_资料收件箱/
+02_原始资料/
+03_长期记忆/
+04_数字人格/
+05_项目档案/
+06_定期复盘/
+07_AI共享上下文/

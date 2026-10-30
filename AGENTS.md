@@ -1,29 +1,24 @@
-# Installing SiranOS for a user (Codex / WorkBuddy agents)
+# SiranOS installing assistant guide (Codex / WorkBuddy)
 
-This is a **public, generic** personal-knowledge tool. Never include the developer's own private files, chat exports or OAuth credentials in a user's setup. No data belongs in the Git repository.
+**Default goal: private local-first installation for any user.** Do not ask for Google credentials and do not copy user content to GitHub, a public issue, or a model prompt.
 
-## First-run procedure (stable local Drive for desktop mode)
+## New user install
 
-1. Read `docs/DRIVE-MCP-SETUP.md`, `SECURITY.md` and `README.md`.
-2. Ensure Node.js >=22 is available. Do not modify or replace other installed LifeOS extensions.
-3. Ask the user to sign in to **Google Drive for desktop**. This is a separate Google app installed on their PC; it gives a folder path. **Do not ask for a Google password or token.**
-4. Let the user choose/create a dedicated **Drive-synced folder** such as `SiranOS Inbox` using Drive for desktop. Prefer a local mirror (fully synced) for reliable indexing. Do not automatically scan the user's entire Drive.
-5. Run `node bridge/cli.mjs setup --folder "<user-selected synced folder path>"` then `node bridge/cli.mjs sync`. Note errors, unsupported formats and files skipped for size; confirm the file count.
-6. Show `node bridge/cli.mjs integration`. For Codex, register the local stdio MCP using `codex mcp add siranos -- node "<absolute path>/bridge/mcp.mjs"`. For WorkBuddy, **merge**, do not replace, `mcpServers.siranos` into `~/.workbuddy/mcp.json` or configure via the UI.
-7. Restart/reload the AI client and confirm the `siranos_status`, `siranos_sync` and `siranos_search` tools respond. Test with `examples/drive-inbox-demo` **before** private files.
-8. Explain that new or changed synced files are re-indexed on MCP calls (at most once per minute per running process). `siranos_profile` contains **only user-approved personal statements**. The user can review pending candidates via `node bridge/cli.mjs memories` and `approve <id>`.
+1. Verify Node.js >=22, install/copy this repository to a permanent folder. Read `docs/LOCAL-FIRST-SETUP.md` and `SECURITY.md`.
+2. Run `node bridge/cli.mjs init --frequency weekly` (ask for a custom `--root` only if necessary). This is safe to repeat in the **same** existing workspace, but refuses to replace an unrelated configured source.
+3. Run `node bridge/cli.mjs tick` with synthetic fixtures first. Show the generated `Documents/SiranOS` folder and explain `01_资料收件箱`.
+4. Ask whether the user wants a scheduled check. Only after approval run `node bridge/cli.mjs schedule-install`. The task checks every morning at 09:00 local time; reports are weekly/monthly/manual. Run `schedule-preview` first if needed.
+5. Run `node bridge/cli.mjs integration`. Add the printed local MCP configuration to Codex/WorkBuddy. For WorkBuddy, **merge** with pre-existing `mcpServers`; never overwrite the user's config wholesale.
+6. Verify `siranos_status`, `siranos_search`, `siranos_second_brain` and `siranos_workspace_update` in the target assistant. Explain that word/trigram retrieval is not full reasoning and citations refer to original evidence.
+7. Tell the user that long-term memories require `node bridge/cli.mjs memories` followed by `approve <id>`. The system must never turn unreviewed claims into stable user profile facts.
 
-## Safety
+## Upgrades and optional cloud
 
-- The MCP server is read-only with respect to uploaded Drive files. It writes only to local `~/.siranos` SQLite index.
-- Do not copy the source folder into GitHub, cloud logs, or an LLM prompt wholesale. Only return the requested evidence and cite its source path.
-- Do not suggest `codex mcp login siranos` for this **local stdio** MCP server; that command applies to OAuth-capable remote endpoints, not Google Drive for desktop.
-- Never claim browser-only Google sign-in will directly work; current beta needs Drive for desktop sync. Direct web OAuth, Google Docs native export, robust >48MiB files, fully automated semantic profiles and production privacy audits are NOT shipped.
+If `~/.siranos` already belongs to a Drive for desktop or direct Google OAuth installation, local `init` **must refuse** to replace that configured source. Use a separate `SIRANOS_HOME` or a deliberate migration plan. The 0.4 Google OAuth developer preview is optional and unverified for broad public OAuth distribution. Never require a Google account for local mode. Do not make the user supply any API keys, OAuth tokens or private files to ChatGPT or GitHub.
 
-## Direct Google Drive OAuth developer preview (0.4)
+## Privacy and correctness
 
-Read `docs/DIRECT-GOOGLE-DRIVE.md`. This mode **does not require Google Drive for desktop** but **does require a publisher-provisioned OAuth Desktop client** and uses restricted `drive.readonly` consent. Do not claim that SiranOS has been verified by Google. Never ask a user for their Google password or paste a refresh token into an AI conversation.
-
-If a valid Google OAuth client ID has been configured locally, let the user run `node bridge/cli.mjs google-connect`, sign in with the Google system browser, and paste the selected Drive folder URL into `node bridge/cli.mjs google-folder <URL>`. Use `google-sync` once; confirm `google-status` reports the selected folder without tokens. Register MCP as in the steps above; do not include user data in the public repo.
-
-For a normal nontechnical user before OAuth publisher verification, choose the existing Drive for desktop mode, not a mock Google sign-in. A direct Drive API request may have broader Google access than the chosen folder even though SiranOS code restricts what it scans.
+- No real user's identity or chat transcript is bundled with this repository. Test with `examples/drive-inbox-demo/`.
+- Do not claim actual background scheduling until the real OS reports that task registration succeeded.
+- Local reports are evidenced snapshots, not diagnostic personalities or externally verified events.
+- Never upload personal data, generated Markdown, secrets or any local database to a public repository. A successful CI run is not a real device end-to-end test.
