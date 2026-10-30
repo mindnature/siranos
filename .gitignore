@@ -24,3 +24,10 @@ coverage/
 .DS_Store
 __pycache__/
 .pytest_cache/
+
+# OAuth application overrides, private tokens or local cache must never be committed
+bridge/google-client.json
+google-oauth-token.json
+google-cloud.json
+google-manifest.json
+.siranos/

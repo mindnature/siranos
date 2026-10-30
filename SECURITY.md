@@ -17,3 +17,9 @@ Security reports: open an issue only after removing sensitive details. For a liv
 Git commits can reveal the author/committer email **even if no personal information appears in code**. Use a provider-issued `noreply` address or an organization/bot identity before pushing. Removing an email from a current file does not remove it from earlier commits, forks, PR refs, or cached views. A full history rewrite must be planned and verified separately by repository maintainers.
 
 GitHub Actions builds use synthetic fixtures only. Always inspect archived fixtures before committing; a `.gitignore` rule alone does not stop tracking an already committed file.
+
+## Direct Google Drive developer preview (0.4)
+
+The OAuth flow uses a local loopback callback with PKCE and CSRF state. The **restricted** `drive.readonly` grant can technically read more than the selected folder; the application restricts its reads in source code but this is not an OAuth access boundary. The project publisher must complete Google's applicable verification before presenting this as a public sign-in feature.
+
+Google access/refresh tokens and cached documents are saved in the user's private `~/.siranos` folder, presently **not encrypted at rest**. Do not share that folder or expose the MCP process over a network. Local `google-disconnect` does not delete the index; `erase-local-data --yes-delete-local-index` is the explicit destructive option. Real-account security and recovery tests are still pending.
