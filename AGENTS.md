@@ -2,7 +2,7 @@
 
 This is a **public, generic** personal-knowledge tool. Never include the developer's own private files, chat exports or OAuth credentials in a user's setup. No data belongs in the Git repository.
 
-## First-run procedure
+## First-run procedure (stable local Drive for desktop mode)
 
 1. Read `docs/DRIVE-MCP-SETUP.md`, `SECURITY.md` and `README.md`.
 2. Ensure Node.js >=22 is available. Do not modify or replace other installed LifeOS extensions.
@@ -19,3 +19,11 @@ This is a **public, generic** personal-knowledge tool. Never include the develop
 - Do not copy the source folder into GitHub, cloud logs, or an LLM prompt wholesale. Only return the requested evidence and cite its source path.
 - Do not suggest `codex mcp login siranos` for this **local stdio** MCP server; that command applies to OAuth-capable remote endpoints, not Google Drive for desktop.
 - Never claim browser-only Google sign-in will directly work; current beta needs Drive for desktop sync. Direct web OAuth, Google Docs native export, robust >48MiB files, fully automated semantic profiles and production privacy audits are NOT shipped.
+
+## Direct Google Drive OAuth developer preview (0.4)
+
+Read `docs/DIRECT-GOOGLE-DRIVE.md`. This mode **does not require Google Drive for desktop** but **does require a publisher-provisioned OAuth Desktop client** and uses restricted `drive.readonly` consent. Do not claim that SiranOS has been verified by Google. Never ask a user for their Google password or paste a refresh token into an AI conversation.
+
+If a valid Google OAuth client ID has been configured locally, let the user run `node bridge/cli.mjs google-connect`, sign in with the Google system browser, and paste the selected Drive folder URL into `node bridge/cli.mjs google-folder <URL>`. Use `google-sync` once; confirm `google-status` reports the selected folder without tokens. Register MCP as in the steps above; do not include user data in the public repo.
+
+For a normal nontechnical user before OAuth publisher verification, choose the existing Drive for desktop mode, not a mock Google sign-in. A direct Drive API request may have broader Google access than the chosen folder even though SiranOS code restricts what it scans.

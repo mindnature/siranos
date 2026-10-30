@@ -1,3 +1,5 @@
+> Progress update (0.4 alpha): implemented an opt-in **restricted drive.readonly** developer preview using native desktop OAuth + PKCE, selected folder BFS, native Docs/Sheets export and local MCP refresh. This is not the final public Google Picker `drive.file` flow; it still needs publisher verification, better scope, encryption and real Google E2E testing. See [the current guide](DIRECT-GOOGLE-DRIVE.md).
+
 # Production vision: one-time Google account sign-in (not yet built)
 
 ## Product contract

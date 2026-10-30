@@ -1,5 +1,22 @@
 # SiranOS · Personal AI Memory and Digital Self
 
+**Public-alpha 0.4: Two ways to connect a personal knowledge source to Codex / WorkBuddy using local MCP.**
+
+- **Recommended stable alpha:** Google Drive **for desktop** sync folder → local index → MCP. Does not need a Google developer project. See [Drive desktop setup](docs/DRIVE-MCP-SETUP.md).
+- **New developer preview:** Google Drive **direct OAuth** → explicit folder URL → Google Drive API incremental folder scan → local index → MCP. No Drive desktop app needed, but the **publisher must configure and verify a Google OAuth app**, which has **not yet been done**. See [Direct Google Drive guide](docs/DIRECT-GOOGLE-DRIVE.md).
+
+The direct Drive OAuth preview currently requests the **restricted `drive.readonly` scope**. Although SiranOS code reads only the selected folder, the Google consent is broader than that folder. This must be disclosed to end users; it cannot be advertised as `drive.file` per-folder access. Tokens and downloaded contents remain local and are not encrypted at rest.
+
+```sh
+# Developer preview, using a publisher- or developer-provisioned Google OAuth desktop client ID:
+node bridge/cli.mjs google-connect
+node bridge/cli.mjs google-folder "<Google Drive folder URL>"
+node bridge/cli.mjs google-sync
+node bridge/cli.mjs integration
+```
+
+**Not yet delivered:** public one-click Google sign-in without publisher OAuth verification, instant background upload monitoring, encrypted secret storage, robust 5GB ZIP64 imports, comprehensive semantic inference or full-browser acceptance testing.
+
 **Two public-alpha interfaces:** a Chrome extension for manual file import (v0.2) and an **agent-installed Google Drive for desktop folder bridge** with local MCP tools (v0.3 alpha).
 
 ## Recommended: Codex / WorkBuddy → Drive → Second Brain

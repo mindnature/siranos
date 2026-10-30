@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 const ROOT=path.resolve(import.meta.dirname,'..');
 const tracked=['README.md','SECURITY.md','LICENSE','.gitignore','package.json'];
-for(const dir of ['docs','examples','extension','tests','.github/workflows']) {
+for(const dir of ['docs','examples','extension','tests','bridge','.github/workflows']) {
   const walk=p=>{for(const name of fs.readdirSync(p)){const full=path.join(p,name);if(fs.statSync(full).isDirectory())walk(full);else if(!name.endsWith('.zip'))tracked.push(path.relative(ROOT,full));}};
   walk(path.join(ROOT,dir));
 }
