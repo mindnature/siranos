@@ -4,12 +4,13 @@
 <button class="nav active" data-view="dashboard">▦ <span>总览</span></button>
 <button class="nav" data-view="import">⇧ <span>导入与云端备份</span></button>
 <button class="nav" data-view="search">⌕ <span>聊天原文检索</span></button>
+<button class="nav" data-view="qa">? <span>向历史提问</span></button>
 <button class="nav" data-view="memories">◇ <span>长期记忆审核</span></button>
 <button class="nav" data-view="projects">▤ <span>项目与知识关联</span></button>
 <button class="nav" data-view="persona">◎ <span>数字人格</span></button>
 <button class="nav" data-view="review">◷ <span>七日复盘</span></button>
 <button class="nav" data-view="settings">⚙ <span>设置与恢复</span></button></nav>
-<div class="sidebar-bottom"><div class="mini-status"><span class="status-dot"></span><span id="sideState">本地优先 · 正在检查</span></div><div class="mini-copy">个人专用 · V3.0<br>不抓取网页，不安装本地服务</div></div></aside>
+<div class="sidebar-bottom"><div class="mini-status"><span class="status-dot"></span><span id="sideState">本地优先 · 正在检查</span></div><div class="mini-copy">SiranOS 0.2 Alpha<br>本地证据检索，不主动抓取网页</div></div></aside>
 <div class="workspace"><header class="topbar"><div><div class="eyebrow">SECOND BRAIN / 私人知识系统</div><h1 id="pageTitle">总览</h1></div><div class="top-actions"><span class="pill" id="driveStatus">Google Drive 未检查</span><button id="quickSync" class="btn small primary">立即同步</button></div></header>
 <main>
 <section class="view active" id="view-dashboard">
@@ -21,14 +22,16 @@
 <section class="view" id="view-import"><div class="section-intro"><h2>多 AI 聊天导入</h2><p>选择各平台官方导出文件。导入后自动拆分会话、建立本地索引并加入 Google Drive 上传队列；不会主动读取网页聊天。</p></div>
 <div class="panel"><div class="section-head"><h3>导入资料</h3><span class="chip">本地处理</span></div>
 <div class="form-row"><label for="provider">来源平台</label><select id="provider"><option value="auto">自动识别（推荐）</option><option value="chatgpt">ChatGPT</option><option value="claude">Claude</option><option value="gemini">Gemini</option><option value="deepseek">DeepSeek</option><option value="grok">Grok</option><option value="other">其他 Markdown / TXT</option></select></div>
-<div class="filebox"><label for="file" class="filebox-label"><span class="upload-symbol">⇧</span><strong>选择 ZIP / JSON / TXT / Markdown 文件</strong><small>支持多选；大型 ZIP 和 ZIP64 请先解压，仅选择聊天 JSON。不会读取未选择的文件。</small></label><input id="file" type="file" accept=".zip,.json,.md,.txt" multiple></div>
+<div class="filebox"><label for="file" class="filebox-label"><span class="upload-symbol">⇧</span><strong>选择 ZIP / JSON / ChatGPT chat.html / TXT / Markdown 文件</strong><small>支持多选；大型 ZIP 和 ZIP64 请先解压。可直接选官方 ChatGPT chat.html，或流式导入较大的会话 JSON 数组。媒体附件不会自动导入。</small></label><input id="file" type="file" accept=".zip,.json,.html,.md,.txt" multiple></div>
 <label class="checkbox-line"><input type="checkbox" id="consent"> 我了解导入文件会保存在当前浏览器；如果此前已启用云盘同步，本次内容也将上传到我的 Google Drive。</label>
-<div class="buttons"><button class="btn primary" id="importBtn" disabled>开始导入与知识整理</button><button class="btn secondary" id="rebuild">扫描旧版记录，补建记忆候选</button></div>
+<div class="buttons"><button class="btn primary" id="importBtn" disabled>开始导入与知识整理</button><button class="btn secondary" id="cancelImport" disabled>取消当前导入</button><button class="btn secondary" id="rebuild">扫描已导入记录，补建记忆候选</button></div>
 <pre id="progress" class="feedback" role="status">等待导入。</pre><details><summary>解析警告与不支持的数据</summary><pre id="warnings" class="feedback">暂无</pre></details></div>
-<div class="panel"><div class="section-head"><h3>Google Drive 同步</h3><span class="chip" id="importCloudChip">等待连接</span></div><p class="hint">原始 JSON 沿用 V2 备份目录与索引；新增独立的长期记忆快照。只有已经导入的数据才能被同步。</p><div class="buttons"><button class="btn primary" id="auth">连接 Google</button><button class="btn secondary" id="sync">立即同步队列</button><button class="btn secondary" id="folder">打开云端目录</button></div><label class="checkbox-line"><input type="checkbox" id="auto">浏览器运行时自动重试待上传记录</label><p id="last" class="hint">上次同步：—</p><p id="cloudError" class="error"></p></div>
+<div class="panel"><div class="section-head"><h3>Google Drive 同步</h3><span class="chip" id="importCloudChip">等待连接</span></div><p class="hint">采用独立的 SiranOS 备份目录与索引，并保存审核后的长期记忆快照。只有已经导入的数据才能被同步。</p><div class="buttons"><button class="btn primary" id="auth">连接 Google</button><button class="btn secondary" id="sync">立即同步队列</button><button class="btn secondary" id="folder">打开云端目录</button></div><label class="checkbox-line"><input type="checkbox" id="auto">浏览器运行时自动重试待上传记录</label><p id="last" class="hint">上次同步：—</p><p id="cloudError" class="error"></p></div>
 </section>
 <section class="view" id="view-search"><div class="section-intro"><h2>查找原始聊天证据</h2><p>返回实际导入的消息、角色、日期和具体位置。支持中文精确关键词检索；尚未接入大模型语义问答。</p></div>
 <div class="panel"><div class="searchbar"><input type="search" id="query" placeholder="例如：我想创业、论文、纽扣、阅读器"><select id="searchProvider"><option value="all">全部平台</option><option value="chatgpt">ChatGPT</option><option value="claude">Claude</option><option value="gemini">Gemini</option><option value="deepseek">DeepSeek</option><option value="grok">Grok</option><option value="other">其他</option></select><button class="btn primary" id="search">检索原文</button></div><div id="searchCount" class="result-count">输入关键词并搜索。</div><div id="results"></div></div></section>
+<section class="view" id="view-qa"><div class="section-intro"><h2>向历史资料提问</h2><p>本地离线回答：优先检索你已导入的<strong>用户原话</strong>，列出最相关的证据。当前不调用云端大模型，不会生成未经证实的人格结论；对历史没有覆盖到的部分会明确说明。</p></div>
+<div class="panel"><div class="searchbar"><input type="search" id="qaQuestion" placeholder="例如：我以前决定做过什么项目？有哪些关于阅读器的目标？" style="flex:1"><button class="btn primary" id="qaAsk">查询证据</button></div><p class="hint">问题和检索过程只在此浏览器内处理。点击任何证据可查看原始消息，再决定是否纳入长期记忆。</p><pre id="qaSummary" class="feedback" role="status">导入演示数据后，在此提出问题。</pre><div id="qaEvidence"></div><div class="info-line" id="qaCaveat">证据式问答不等于生成式 AI 推理；任何记忆都要由用户确认。</div></div></section>
 <section class="view" id="view-memories"><div class="section-intro"><h2>长期记忆审核</h2><p>系统只从用户消息识别候选线索。确认以后进入长期记忆库；拒绝的候选不会反复自动确认。历史来源修改时自动标记待复核。</p></div><div class="panel"><div class="filters"><label>状态 <select id="memoryStatus"><option value="pending">待确认</option><option value="confirmed">已确认</option><option value="dismissed">已忽略</option><option value="all">全部</option></select></label><label>主题 <select id="memoryProject"><option value="all">全部主题</option></select></label><button id="refreshMemory" class="btn secondary">刷新</button></div><p id="memoryCount" class="hint"></p><div id="memoryList"></div></div></section>
 <section class="view" id="view-projects"><div class="section-intro"><h2>项目与知识关联</h2><p>按主题组织已导入会话和人工确认的记忆，自动提供时间线线索，不推断项目已完成或收入已实现。</p></div><div id="projectCards" class="project-cards"></div></section>
 <section class="view" id="view-persona"><div class="section-intro"><h2>数字人格 · Digital Self</h2><p>只整合你亲自审核确认的历史发言，不自动给你贴人格标签，也不把“自述完成”当作外部验证。</p></div>
@@ -36,12 +39,12 @@
 <div id="personaGroups" class="persona-groups"></div>
 <div class="info-line">提醒：数字人格是基于证据的辅助档案。用户可以在“长期记忆审核”中撤销或修改批准状态，重新生成画像。</div></section>
 <section class="view" id="view-review"><div class="section-intro"><h2>七日证据复盘</h2><p>从导入的时间数据及已确认记忆生成报告；不能获取原文的日期、来源和结果将标注为未知。</p></div><div class="panel"><div class="buttons"><button id="runReview" class="btn primary">计算最近7天</button><button id="exportReview" class="btn secondary">导出 Markdown</button></div><div id="reviewContent" class="review-text">点击“计算最近7天”开始。</div></div></section>
-<section class="view" id="view-settings"><div class="section-intro"><h2>数据与备份管理</h2><p>兼容原 V1/V2 本地记录，不删除旧数据库或 Google Drive 文件。请务必在更换电脑前核查云端已完成同步。</p></div>
+<section class="view" id="view-settings"><div class="section-intro"><h2>数据与备份管理</h2><p>此公开测试版使用独立 SiranOS 数据库，不会直接迁移其他插件的旧记录。请务必在更换电脑前核查云端已完成同步。</p></div>
 <div class="panel"><h3>数据状态</h3><div id="statusBlock" class="settings-grid">正在检查……</div><div class="buttons"><button class="btn secondary" id="exportIndex">导出聊天索引</button><button class="btn secondary" id="exportMemories">导出记忆快照</button></div><p class="hint">索引不等于原文。备份完整性应以云端原始文件和索引逐条校验为准。</p></div>
 <div class="panel"><h3>云端恢复</h3><p class="hint">先连接之前使用的同一个 Google OAuth 应用和账号。按批次读取云端索引与原文，已有不同版本不会被静默覆盖。</p><button class="btn secondary" id="restoreCloud">从 Google Drive 恢复（每次最多18条）</button><pre class="feedback" id="restoreLog">尚未恢复。</pre></div>
 <div class="panel"><h3>本地记忆恢复</h3><p class="hint">可以导入此前由本插件导出的记忆快照，现有相同 ID 不会被覆盖。</p><input type="file" accept=".json" id="memoryFile"><button class="btn secondary" id="restoreMemories">导入记忆 JSON</button></div>
-<div class="panel warn"><h3>数据边界</h3><p>Google Drive 仅备份插件可读的文件；你已同意将全部导入聊天原文上传，其中可能有敏感内容。当前不具备端到端加密，也不自动采集新聊天。关闭浏览器后不会运行本地整理。请勿把云盘目录公开分享。</p><p>本地记忆候选基于规则，不是 AI 大模型推理；跨聊天新会话中的 ChatGPT 仍需专门的授权检索接入，不能因数据保存在云盘就自动读取。</p></div>
+<div class="panel warn"><h3>数据边界</h3><p>Google Drive 仅备份插件可读的文件；仅在你主动启用同步后才会将已导入的聊天原文上传，其中可能有敏感内容。当前不具备端到端加密，也不自动采集新聊天。关闭浏览器后不会运行本地整理。请勿把云盘目录公开分享。</p><p>本地记忆候选基于规则，不是 AI 大模型推理；跨聊天新会话中的 ChatGPT 仍需专门的授权检索接入，不能因数据保存在云盘就自动读取。</p></div>
 </section>
 </main><footer>SiranOS Prototype · Chrome 扩展一体化版 · 无本地服务 · 源数据可追溯</footer></div></div>
 <dialog id="sourceDialog"><div class="modal-head"><strong id="dialogTitle">来源消息</strong><button id="dialogClose" class="btn secondary">关闭</button></div><div id="dialogMeta" class="hint"></div><pre id="dialogBody" class="dialog-body"></pre></dialog>
-<script src="db.js"></script><script src="importer.js"></script><script src="brain.js"></script><script src="persona.js"></script><script src="options.js"></script></body></html>
+<script src="db.js"></script><script src="importer.js"></script><script src="brain.js"></script><script src="streaming.js"></script><script src="qa.js"></script><script src="persona.js"></script><script src="options.js"></script></body></html>

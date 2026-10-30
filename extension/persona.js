@@ -7,7 +7,8 @@ const SiranPersona=(()=>{
     {id:'decisions',title:'判断与决定',types:['决策']},
     {id:'goals',title:'目标与计划',types:['目标']},
     {id:'actions',title:'行动与成果（自述）',types:['行动']},
-    {id:'reflections',title:'观点与反思',types:['反思']}
+    {id:'reflections',title:'观点与反思',types:['反思']},
+    {id:'observations',title:'其他已确认原话（不代表事实核验）',types:['线索']}
   ];
   const normalize=x=>String(x??'').replace(/\s+/gu,' ').trim();
   const validDate=x=>!x?null:Number.isFinite(Date.parse(x))?new Date(x).toISOString():null;

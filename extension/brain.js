@@ -43,6 +43,21 @@ async function listMemories({status='all',project='all',limit=600}={}){let all=a
 async function review(id,decision){if(!['confirmed','dismissed','pending'].includes(decision))throw new Error('无效的审核状态');const m=await SiranDB.memory(id);if(!m)throw new Error('找不到记忆');
  if(decision==='confirmed'&&m.sourceStale)throw new Error('原始会话已变更，需要人工重新核对证据后才能确认');
  m.status=decision;m.updatedAt=new Date().toISOString();m.reviewNeeded=false;await SiranDB.putMemory(m);await chrome.storage.local.set({brainDirtyAt:new Date().toISOString()});return m;}
+// A search hit can become a pending memory only after re-checking the original user message.
+async function proposeEvidence(hit){
+ const record=await SiranDB.get(hit?.conversationId);
+ if(!record||!record.hash||record.hash!==hit?.sourceHash)throw new Error('来源已变更，请重新检索后确认。');
+ const messages=msgs(record),index=hit?.messageIndex,message=Number.isInteger(index)?messages[index]:null;
+ if(!message||!['user','human'].includes(String(message.role||'').toLowerCase()))throw new Error('仅允许从真实用户消息建立记忆候选。');
+ const quote=norm(message.text).slice(0,550);if(!quote)throw new Error('该消息没有可引用文字。');
+ const rule=RULES.find(r=>r.re.test(quote));
+ const id='M-'+(await digest(`${record.id}|${record.hash}|${index}|${quote}`)).slice(0,30);
+ const existing=await SiranDB.memory(id);if(existing)return {created:false,memory:existing};
+ const now=new Date().toISOString();
+ const m={id,type:rule?.type||'线索',text:quote,project:projectOf(record,quote),status:'pending',createdAt:now,updatedAt:now,eventDate:iso(message.date)||iso(record.created)||null,
+  source:{conversationId:record.id,provider:record.provider||'unknown',conversationTitle:record.title,messageIndex:index,sourceHash:record.hash,quote}};
+ await SiranDB.putMemory(m);await chrome.storage.local.set({brainDirtyAt:now});return {created:true,memory:m};
+}
 async function searchEvidence(query,{provider='all',limit=50}={}){
  const q=norm(query).toLocaleLowerCase();if(!q)return [];
  const records=await SiranDB.listAll(),out=[];
@@ -71,5 +86,5 @@ async function importSnapshot(obj){if(obj?.schema!=='siranos.memory.v1'||!Array.
  let added=0,skipped=0;for(const m of obj.memories){if(!m.id||!m.source?.conversationId||!['pending','confirmed','dismissed'].includes(m.status)){skipped++;continue;}
  const existing=await SiranDB.memory(m.id);if(existing){skipped++;continue;}await SiranDB.putMemory({...m,status:m.status,sourceStale:!!m.sourceStale});added++;}
  if(added)await chrome.storage.local.set({brainDirtyAt:new Date().toISOString()});return {added,skipped};}
-return {PROJECTS,onImport,processExisting,listMemories,review,searchEvidence,projectSummary,weeklyReview,snapshot,importSnapshot,msgs};
+return {PROJECTS,onImport,processExisting,listMemories,review,proposeEvidence,searchEvidence,projectSummary,weeklyReview,snapshot,importSnapshot,msgs};
 })();
