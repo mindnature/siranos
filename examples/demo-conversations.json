@@ -1,0 +1,12 @@
+[
+  {
+    "id": "fictional-demo-001",
+    "title": "Fictional project: build a reading app",
+    "create_time": 1761000000,
+    "mapping": {
+      "msg-a": {"message": {"author": {"role": "user"}, "content": {"parts": ["我决定制作一个不需要登录的虚构阅读器原型。"]}, "create_time": 1761000000}},
+      "msg-b": {"message": {"author": {"role": "assistant"}, "content": {"parts": ["先做一个离线试用版。"]}, "create_time": 1761000001}},
+      "msg-c": {"message": {"author": {"role": "user"}, "content": {"parts": ["我的目标是让朋友可以自己导入公共领域书籍阅读。"]}, "create_time": 1761000002}}
+    }
+  }
+]
