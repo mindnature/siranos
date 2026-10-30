@@ -1,13 +1,19 @@
 {
   "name": "siranos",
-  "version": "0.2.0",
+  "version": "0.3.0-alpha.0",
   "private": true,
-  "description": "Local-first evidence-based personal memory browser extension",
+  "description": "Local-first SiranOS browser extension and Drive-synced MCP second brain",
   "scripts": {
-    "test": "node tests/test-importers.js && node tests/test-core.js && node tests/test-drive.js && node tests/test-persona.js && node tests/test-size-guard.js && node tests/test-qa.js && node tests/test-streaming.js",
+    "test": "node tests/test-importers.js && node tests/test-core.js && node tests/test-drive.js && node tests/test-persona.js && node tests/test-size-guard.js && node tests/test-qa.js && node tests/test-streaming.js && node --no-warnings tests/test-bridge.mjs",
     "privacy-check": "node scripts/privacy-check.mjs",
-    "lint": "node --check extension/streaming.js && node --check extension/qa.js && node --check extension/db.js && node --check extension/importer.js && node --check extension/brain.js && node --check extension/persona.js && node --check extension/options.js && node --check extension/service-worker.js"
+    "lint": "node --check extension/streaming.js && node --check extension/qa.js && node --check extension/db.js && node --check extension/importer.js && node --check extension/brain.js && node --check extension/persona.js && node --check extension/options.js && node --check extension/service-worker.js && node --check bridge/core.mjs && node --check bridge/mcp.mjs && node --check bridge/cli.mjs"
   },
-  "engines": {"node": ">=22"},
-  "license": "MIT"
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "bin": {
+    "siranos": "bridge/cli.mjs",
+    "siranos-mcp": "bridge/mcp.mjs"
+  }
 }
