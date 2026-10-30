@@ -1,4 +1,27 @@
-# SiranOS · Personal AI Memory and Digital Self
+# SiranOS · Your private local second brain
+
+**SiranOS 0.5 Alpha — install once with Codex / WorkBuddy, use your own files, retrieve evidence over local MCP. Google Drive is optional.**
+
+## Local-first quick start (recommended)
+
+Requires Node.js 22+. Download and extract the repository into a permanent folder. In that folder:
+
+```bash
+node bridge/cli.mjs init --frequency weekly
+node bridge/cli.mjs tick
+node bridge/cli.mjs schedule-install
+node bridge/cli.mjs integration
+```
+
+`init` creates `Documents/SiranOS/` with an inbox (`01_资料收件箱`), original-source manifest, human-reviewed long-term memories, evidence-linked Digital Self, project leads, periodic reviews and an AI context file. You can choose `--frequency monthly` or `manual`. Drop your own chat exports, Markdown, TXT, JSON or DOCX into the inbox; `tick` updates the local search index and editable-readable Markdown outputs. A daily scheduled **check** can generate reports when their weekly/monthly period becomes due. Unapproved statements stay **pending** until confirmed by the user; the project does not invent a verified personality.
+
+After running `integration`, let Codex or WorkBuddy register SiranOS as a **local stdio MCP** server. Search, source evidence, approved profile, periodic reports and on-demand update become available as MCP tools. No Google login, paid LLM or cloud server required. See **[Local-first installation and limitations](docs/LOCAL-FIRST-SETUP.md)** for all supported operating systems and commands.
+
+**Release status:** early alpha; synthetic CI tests run, but actual Windows/macOS scheduling and end-to-end public-install tests are pending. Existing 0.4 Google Drive developer preview remains optional, and is not production-verified.
+
+---
+
+# SiranOS · Personal AI Memory and Digital Self (browser extension, optional)
 
 **Public-alpha 0.4: Two ways to connect a personal knowledge source to Codex / WorkBuddy using local MCP.**
 
