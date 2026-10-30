@@ -1,5 +1,24 @@
 # SiranOS · Personal AI Memory and Digital Self
 
+**Two public-alpha interfaces:** a Chrome extension for manual file import (v0.2) and an **agent-installed Google Drive for desktop folder bridge** with local MCP tools (v0.3 alpha).
+
+## Recommended: Codex / WorkBuddy → Drive → Second Brain
+
+The new `bridge/` component runs on the user's computer. Once Google Drive **for desktop** is connected and a synced folder is selected, adding supported files to that Drive folder updates the private local index when Codex/WorkBuddy next calls SiranOS. MCP tools expose evidence search, source inspection and user-approved memory profile — never the entire Drive by default. **No Google developer credentials, LLM API key or server deployment is required for this bridge.**
+
+For the complete setup use **[Drive + MCP install guide](docs/DRIVE-MCP-SETUP.md)** and [agent installer instructions](AGENTS.md).
+
+```sh
+node bridge/cli.mjs setup --folder "/path/to/your/Google Drive/SiranOS Inbox"
+node bridge/cli.mjs sync
+node bridge/cli.mjs integration
+```
+
+**Important:** signing in on drive.google.com alone is NOT sufficient in this build. Google Drive for desktop must be signed in and syncing, with a local folder chosen once. True web OAuth login, cloud-native Docs access, ZIP64, large exports and automatic semantic personality modeling are future milestones, not shipped features. See [OAuth product plan](docs/OAUTH-PRODUCT-PLAN.md).
+
+## Existing Chrome extension
+
+
 **Local-first, evidence-linked memory and digital-self prototype.** SiranOS is a Chrome/Edge Manifest V3 extension that imports *user-selected* chat exports, stores source records locally, identifies reviewable memory candidates, and generates a portable digital-self profile from **human-approved** statements. It uses no remote language model.
 
 > Early alpha (0.2.0): do not assume this is a production-grade 5 GB backup, a live cross-provider sync solution, a verified human personality model, or an autonomous agent.

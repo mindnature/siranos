@@ -1,0 +1,7 @@
+[
+  {"id":"demo-001","title":"虚构的社区园艺计划","create_time":1761828000,"mapping":{
+    "a":{"message":{"author":{"role":"user"},"content":{"parts":["我决定从下周开始组织社区花园种植活动，并且先招募五位志愿者。"]},"create_time":1761828000}},
+    "b":{"message":{"author":{"role":"assistant"},"content":{"parts":["建议优先采购一百株观赏花苗。"]},"create_time":1761828001}},
+    "c":{"message":{"author":{"role":"user"},"content":{"parts":["我的目标是让每个参与者都能学会基础的种植和浇水方法。"]},"create_time":1761828002}}
+  }}
+]
