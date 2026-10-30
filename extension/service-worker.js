@@ -1,9 +1,9 @@
 importScripts('db.js','importer.js','brain.js');
 const API='https://www.googleapis.com/drive/v3';
 const UPLOAD='https://www.googleapis.com/upload/drive/v3';
-const FOLDER_NAME='SiranOS Private Chat Backups'; // existing installations retain saved folderId
-const INDEX_NAME='conversations-index.v2.json'; // Keep V2 index for compatibility
-const BRAIN_NAME='lifeos-memory.v3.json';
+const FOLDER_NAME='SiranOS Private Chat Backups'; // stored folder IDs remain local to each browser profile
+const INDEX_NAME='conversations-index.v1.json'; // SiranOS public-alpha index
+const BRAIN_NAME='siranos-memory.v1.json';
 let working=false;
 const now=()=>new Date().toISOString();
 async function token(){const r=await chrome.identity.getAuthToken({interactive:false});
@@ -81,7 +81,7 @@ async function jsonIndexPayload(){const records=await SiranDB.listAll();
     kind:r.kind||'conversation',title:r.title,created:r.created??null,modified:r.modified??null,
     message_count:r.messageCount??null,topic_tags:r.topicTags||[],sha256:r.hash,drive_file_id:r.driveId,filename:filename(r),
     note:r.warning||null})).sort((a,b)=>a.id.localeCompare(b.id));
-  return JSON.stringify({schema:'siran.lifeos.index.v2',description:'Private multi-AI chat source index. Raw content lives in separate files.',count:entries.length,entries});
+  return JSON.stringify({schema:'siranos.index.v1',description:'Private multi-AI chat source index. Raw content lives in separate files.',count:entries.length,entries});
 }
 async function sha256(text){const bytes=new TextEncoder().encode(text),hash=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,'0')).join('');}
 async function uploadIndex(folderId){
@@ -98,7 +98,7 @@ async function uploadIndex(folderId){
   await chrome.storage.local.set({indexHash:hash,indexId:result.id,indexUpdatedAt:now()});return {count:JSON.parse(body).count};
 }
 async function uploadBrain(folderId){
-  const body=JSON.stringify({schema:'siran.lifeos.brain.v3',createdAt:now(),memories:await SiranDB.listMemories()});
+  const body=JSON.stringify({schema:'siranos.memory.v1',createdAt:now(),memories:await SiranDB.listMemories()});
   // Date in the payload changes every time; use content-only hash to skip unchanged data.
   const content=await SiranDB.listMemories(),hash=await sha256(JSON.stringify(content));
   const st=await chrome.storage.local.get(['brainHash','brainFileId']);
@@ -150,7 +150,7 @@ async function restoreCloud(limit=18){
  }
  await chrome.storage.local.set({restoreIndexId:idx.id,restorePosition:pos});
  let memories=null;if(pos===entries.length){const brain=files.find(f=>f.name===BRAIN_NAME);
-  if(brain){try{const b=JSON.parse(await fileText(brain.id));if(b.schema==='siran.lifeos.brain.v3'&&Array.isArray(b.memories)){
+  if(brain){try{const b=JSON.parse(await fileText(brain.id));if(b.schema==='siranos.memory.v1'&&Array.isArray(b.memories)){
     let added=0;for(const m of b.memories){if(!m.id||!m.source?.conversationId||await SiranDB.memory(m.id))continue;
       const local=await SiranDB.get(m.source.conversationId);await SiranDB.putMemory({...m,sourceStale:!local||local.hash!==m.source.sourceHash});added++;}memories={added};
     await chrome.storage.local.set({brainFileId:brain.id});}

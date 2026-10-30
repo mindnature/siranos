@@ -11,3 +11,9 @@ SiranOS processes highly sensitive personal narratives. Treat any export as conf
 - Open-source demos contain only **fictional** accounts and content. Avoid posting raw logs in issues.
 
 Security reports: open an issue only after removing sensitive details. For a live vulnerability involving private data, contact repository maintainers privately through GitHub rather than posting secrets publicly.
+
+## Source-control metadata
+
+Git commits can reveal the author/committer email **even if no personal information appears in code**. Use a provider-issued `noreply` address or an organization/bot identity before pushing. Removing an email from a current file does not remove it from earlier commits, forks, PR refs, or cached views. A full history rewrite must be planned and verified separately by repository maintainers.
+
+GitHub Actions builds use synthetic fixtures only. Always inspect archived fixtures before committing; a `.gitignore` rule alone does not stop tracking an already committed file.

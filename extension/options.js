@@ -6,7 +6,7 @@ const message=(id,text)=>{$(id).textContent=String(text);};
 let reviewMd='';let busy=false;
 function goto(view){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===`view-${view}`));document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
  const titles={dashboard:'总览',import:'导入与备份',search:'原文检索',memories:'长期记忆',projects:'知识项目',persona:'数字人格',review:'七日复盘',settings:'设置与恢复'};
- $('pageTitle').textContent=titles[view]||'人生实验室';location.hash=view;
+ $('pageTitle').textContent=titles[view]||'个人知识库';location.hash=view;
  if(view==='memories')renderMemories();if(view==='projects')renderProjects();if(view==='persona')renderPersona();if(view==='dashboard')renderDashboard();if(view==='settings')renderSettings();}
 document.querySelectorAll('[data-view],[data-go]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.view||b.dataset.go)));
 async function refresh(){try{const s=await send('STATUS'),stats=s.stats||{total:0,synced:0,pending:0,failed:0,providers:{}};
@@ -97,13 +97,13 @@ async function runReview(){const r=await SiranBrain.weeklyReview(7);const lines=
  lines.push('','## 关联项目');for(const p of r.projectCounts)lines.push(`- ${p.name}：${p.conversations} 条会话；${p.confirmed} 条确认记忆；${p.pending} 条待审核`);
  lines.push('','## 限制',r.limitations);reviewMd=lines.join('\n');message('reviewContent',reviewMd);}
 function downloadFile(name,content,mime='application/json'){const url=URL.createObjectURL(new Blob([content],{type:mime}));const a=N('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
-$('exportReview').addEventListener('click',async()=>{if(!reviewMd)await runReview();downloadFile('Siran-LifeOS-7日复盘.md',reviewMd,'text/markdown');});
+$('exportReview').addEventListener('click',async()=>{if(!reviewMd)await runReview();downloadFile('SiranOS-7日复盘.md',reviewMd,'text/markdown');});
 async function renderSettings(){const [stats,mem,versions,info]=await Promise.all([SiranDB.stats(),SiranDB.listMemories(),SiranDB.listVersions(),send('STATUS')]);
  const root=$('statusBlock');root.replaceChildren();const cells=[['本地原始会话',stats.total],['已上传原文',stats.synced],['待上传',stats.pending],['记忆总量',mem.length],['会话历史版本',versions.length],['最近记忆云端同步',info.brainCloudAt?displayTime(info.brainCloudAt):'尚未同步']];for(const [k,v] of cells)root.append(N('div','',`${k}：${v}`));}
-$('exportIndex').addEventListener('click',async()=>{const x=await SiranDB.listAll();downloadFile('Siran-LifeOS-聊天索引.json',JSON.stringify({schema:'siran.lifeos.index.v3',entries:x.map(r=>({id:r.id,provider:r.provider,title:r.title,created:r.created,modified:r.modified,hash:r.hash,driveId:r.driveId,topicTags:r.topicTags}))},null,2));});
-$('exportMemories').addEventListener('click',async()=>downloadFile('Siran-LifeOS-记忆快照.json',JSON.stringify(await SiranBrain.snapshot(),null,2)));
+$('exportIndex').addEventListener('click',async()=>{const x=await SiranDB.listAll();downloadFile('SiranOS-聊天索引.json',JSON.stringify({schema:'siranos.index.v1',entries:x.map(r=>({id:r.id,provider:r.provider,title:r.title,created:r.created,modified:r.modified,hash:r.hash,driveId:r.driveId,topicTags:r.topicTags}))},null,2));});
+$('exportMemories').addEventListener('click',async()=>downloadFile('SiranOS-记忆快照.json',JSON.stringify(await SiranBrain.snapshot(),null,2)));
 $('restoreMemories').addEventListener('click',async()=>{const f=$('memoryFile').files[0];if(!f){alert('请先选择记忆 JSON 文件');return;}try{const r=await SiranBrain.importSnapshot(JSON.parse(await f.text()));alert(`成功新增 ${r.added} 条记忆；跳过 ${r.skipped} 条。`);await refresh();}catch(e){alert('恢复失败：'+String(e.message||e));}});
 $('restoreCloud').addEventListener('click',async()=>{if(busy)return;busy=true;$('restoreCloud').disabled=true;try{message('restoreLog','正在读取 Google Drive 云端索引与原文…');const r=await send('RESTORE');if(r.error)throw new Error(r.error);
  message('restoreLog',`云端共 ${r.total} 条；已扫描 ${r.position}；剩余 ${r.remaining}。\n本批新增 ${r.stats.added}，一致去重 ${r.stats.unchanged}，版本冲突 ${r.stats.conflict}，失败 ${r.stats.failed}。\n记忆恢复：${JSON.stringify(r.memories||'等待最后一批')}`);await refresh();
  }catch(e){message('restoreLog','恢复失败：'+String(e.message||e));}finally{busy=false;$('restoreCloud').disabled=false;}});
-refresh().then(()=>{const initial=location.hash.slice(1);goto(['dashboard','import','search','memories','projects','persona','review','settings'].includes(initial)?initial:'dashboard');}).catch(e=>console.warn('LifeOS start error',e));
+refresh().then(()=>{const initial=location.hash.slice(1);goto(['dashboard','import','search','memories','projects','persona','review','settings'].includes(initial)?initial:'dashboard');}).catch(e=>console.warn('SiranOS start error',e));

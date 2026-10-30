@@ -1,12 +1,12 @@
 [
   {
     "id": "fictional-demo-001",
-    "title": "Fictional project: build a reading app",
+    "title": "Fictional project: organize a community garden",
     "create_time": 1761000000,
     "mapping": {
-      "msg-a": {"message": {"author": {"role": "user"}, "content": {"parts": ["我决定制作一个不需要登录的虚构阅读器原型。"]}, "create_time": 1761000000}},
-      "msg-b": {"message": {"author": {"role": "assistant"}, "content": {"parts": ["先做一个离线试用版。"]}, "create_time": 1761000001}},
-      "msg-c": {"message": {"author": {"role": "user"}, "content": {"parts": ["我的目标是让朋友可以自己导入公共领域书籍阅读。"]}, "create_time": 1761000002}}
+      "msg-a": {"message": {"author": {"role": "user"}, "content": {"parts": ["我决定设计一个社区花园志愿者排班示例。"]}, "create_time": 1761000000}},
+      "msg-b": {"message": {"author": {"role": "assistant"}, "content": {"parts": ["先让三名模拟成员试用排班表。"]}, "create_time": 1761000001}},
+      "msg-c": {"message": {"author": {"role": "user"}, "content": {"parts": ["我的目标是让模拟成员能自行查看活动安排。"]}, "create_time": 1761000002}}
     }
   }
 ]

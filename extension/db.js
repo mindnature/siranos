@@ -1,10 +1,10 @@
-/* LifeOS V3 — additive IndexedDB migration, retains V1/V2 store/data. */
+/* SiranOS public alpha: local IndexedDB storage. */
 const SiranDB=(()=>{
  'use strict';
- const NAME='siran-lifeos-local-v1',VERSION=3;
+ const NAME='siranos-public-local-v1',VERSION=3;
  function open(){return new Promise((yes,no)=>{const q=indexedDB.open(NAME,VERSION);q.onupgradeneeded=()=>{
   for(const s of ['conversations','memories','versions'])if(!q.result.objectStoreNames.contains(s))q.result.createObjectStore(s,{keyPath:'id'});
- };q.onsuccess=()=>yes(q.result);q.onerror=()=>no(q.error);q.onblocked=()=>no(new Error('请关闭其他 LifeOS 标签页后刷新。'));});}
+ };q.onsuccess=()=>yes(q.result);q.onerror=()=>no(q.error);q.onblocked=()=>no(new Error('请关闭其他 SiranOS 标签页后刷新。'));});}
  async function transaction(store,mode,fn){const db=await open();try{return await new Promise((yes,no)=>{const tx=db.transaction(store,mode),req=fn(tx.objectStore(store));let data;req.onsuccess=()=>{data=req.result;};req.onerror=()=>no(req.error);tx.oncomplete=()=>yes(data);tx.onerror=()=>no(tx.error);tx.onabort=()=>no(tx.error||new Error('本地数据库事务中断'));});}finally{db.close();}}
  const get=id=>transaction('conversations','readonly',s=>s.get(id));
  const put=x=>transaction('conversations','readwrite',s=>s.put(x));

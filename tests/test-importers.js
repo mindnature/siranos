@@ -34,7 +34,7 @@ const json=JSON.stringify;
   const r=await Importer.readFile(file);assert.equal(r.items[0].provider,'chatgpt');
   const textFile=new File(['一段手工反思文本'],'grok_note.md');
   const txt=await Importer.readFile(textFile,()=>{},'grok');assert.equal(txt.items[0].provider,'grok');assert.equal(txt.items[0].kind,'text');
-  const zip=await Importer.readFile(new File([fs.readFileSync(__dirname+'/siran-multi-export-fixture.zip')],'export.zip'));
+  const zip=await Importer.readFile(new File([fs.readFileSync(__dirname+'/multi-provider-fixture.zip')],'export.zip'));
   assert.equal(zip.items.length,4,'zip contents: cg, claude, Gemini, grok');
   assert.ok(zip.warnings.some(w=>w.includes('其余')));
   console.log('PASS multi-provider parser: 5 providers, zip, dedup, metadata, text integrity, unsafe skip');

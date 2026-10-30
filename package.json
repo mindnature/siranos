@@ -5,6 +5,7 @@
   "description": "Local-first evidence-based personal memory browser extension",
   "scripts": {
     "test": "node tests/test-importers.js && node tests/test-core.js && node tests/test-drive.js && node tests/test-persona.js && node tests/test-size-guard.js",
+    "privacy-check": "node scripts/privacy-check.mjs",
     "lint": "node --check extension/db.js && node --check extension/importer.js && node --check extension/brain.js && node --check extension/persona.js && node --check extension/options.js && node --check extension/service-worker.js"
   },
   "engines": {"node": ">=22"},

@@ -1,4 +1,4 @@
-/* 思然 LifeOS Sync V2 — local-only multi-provider import and search projection.
+/* SiranOS public alpha — local-only multi-provider import and search projection.
  * Original conversation objects are stored verbatim as structured JSON values;
  * normalized message text is ONLY a derivative search index, never a replacement.
  */
@@ -163,7 +163,7 @@ const SiranImporter = (() => {
   async function readFile(file, onProgress=()=>{}, hint='auto'){
     const warnings=[], out=[], ext=(file.name.split('.').at(-1)||'').toLowerCase();
     if(ext==='zip'){
-      if(file.size>180*1024*1024)throw new Error('ZIP 超过180MB或使用ZIP64：当前原型不支持整包读取。请先解压并选择 conversations-000.json 等聊天分片；不要导入5GB整包。');
+      if(file.size>180*1024*1024)throw new Error('ZIP 超过180MB或使用ZIP64：当前原型不支持整包读取。请先解压并选择 conversations-000.json 等聊天分片；不要导入超大压缩包。');
       const bytes=new Uint8Array(await file.arrayBuffer());
       const all=entries(bytes), selected=all.filter(e=>validZipJSONPath(e.name)&&!e.name.includes('__MACOSX'));
       if(!selected.length)throw new Error('ZIP 中未找到可识别的聊天 JSON。Gemini 请在 Takeout 选择 My Activity → Gemini Apps → JSON。');

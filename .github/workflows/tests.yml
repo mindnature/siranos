@@ -14,3 +14,4 @@ jobs:
           node-version: '22'
       - run: npm test
       - run: npm run lint
+      - run: npm run privacy-check

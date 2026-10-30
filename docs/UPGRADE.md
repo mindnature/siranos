@@ -1,11 +1,13 @@
-# Upgrade a legacy unpacked Siran LifeOS extension
+# SiranOS upgrade and data safety
 
-The GitHub alpha is **not** an automatic update to a previously installed extension. The old Chrome extension may contain data and an OAuth client ID bound to its extension ID.
+This public repository is a standalone **alpha extension** for anyone. It does not contain or migrate any maintainer's personal browser data, private knowledge base, or cloud credentials.
 
-**Safe first step:** close old extension tabs, keep the original extension enabled, export available memory/index snapshots, and copy the entire old extension source folder to a private backup outside GitHub.
+**Before upgrading an installed SiranOS build:**
 
-**Optional developer migration:** compare sources; move all updated `extension/*.js`, `options.html`, and `style.css` into the *existing path*. Add the new `persona.js` file and ensure `options.html` loads it before `options.js`. Keep the original `manifest.json` OAuth ID and existing browser extension ID; do not copy this repository's placeholder manifest over a configured one. Increment the installed manifest version if needed, keeping the same permissions and URLs.
+1. Export available local conversation indexes and approved-memory snapshots; separately retain original vendor exports.
+2. Back up the current extension folder and browser profile. Never publish those backups or add them to this repository.
+3. Check the extension ID and the `oauth2.client_id` locally; replacing or moving an unpacked extension can change its identity and disconnect local IndexedDB data.
+4. Test the new build in a separate browser profile with `examples/demo-conversations.json` first.
+5. Do not overwrite a working installation or delete earlier backups until data restoration and cloud permissions have been verified against real test records.
 
-Reload once from `chrome://extensions`. Test old conversation counts, original-source preview, memory review and optional Drive connection. Do not remove older backups until restored records have been verified.
-
-This procedure is **not** yet tested against every deployed V2/V3 install. For a safer public test, install the GitHub alpha in a separate Chrome profile with synthetic data (Google OAuth would then require a separate client configuration).
+**Compatibility:** This early public alpha does **not** promise automatic migration from unrelated extensions or earlier private prototypes. Any previous backup format may require an explicit one-time migration tool in a future release. Never paste secrets or personal exports in a public issue.

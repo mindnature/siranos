@@ -27,11 +27,11 @@
 
 The distributed `extension/manifest.json` intentionally contains a **placeholder** Chrome OAuth Client ID, not any author's credentials. Offline importing and review do not require OAuth. To enable Google Drive, register your **own** Google Cloud OAuth client for a Chrome extension, replace the placeholder `oauth2.client_id`, confirm your *actual extension ID* in `chrome://extensions`, and reload. The Google API scope is `https://www.googleapis.com/auth/drive.file`. Auth is not enabled by simply cloning this repository. No OAuth secrets or user tokens are stored in GitHub.
 
-If upgrading an installed legacy Siran LifeOS V2/V3 unpacked extension, see [upgrade notes](docs/UPGRADE.md). **Do not delete the original extension or clear its browser data.** An unpacked extension's ID and IndexedDB storage may change when installed from a different directory.
+If upgrading an earlier SiranOS build, back up the existing browser profile and review [upgrade safety notes](docs/UPGRADE.md). **Do not replace an existing extension in place without checking compatibility**; changing an unpacked extension ID can make its IndexedDB data inaccessible.
 
 ## Size limits and known gaps
 
-- Deliberate hard guard: **ZIP/JSON over 180 MiB is refused before full allocation**. ZIP64 is unsupported. A 5 GB ChatGPT archive must be unpacked *outside the extension*; then upload only manageable individual `conversations-000.json` style shards. This is not a streaming ZIP64 importer, and the extension does not directly scan any arbitrary Google Drive folder.
+- Deliberate hard guard: **ZIP/JSON over 180 MiB is refused before full allocation**. ZIP64 is unsupported. A multi-gigabyte chat archive must be unpacked *outside the extension*; then import only manageable individual `conversations-000.json` style shards. This is not a streaming ZIP64 importer, and the extension does not directly scan any arbitrary Google Drive folder.
 - ZIP imports only recognized chat JSON and **not** the full attachment/media payload. Preserve original ZIP separately for complete backup.
 - The plugin cannot automatically read new ChatGPT/Claude/Gemini pages or other AI vendors' account histories. The optional Google Drive feature backs up records **the plugin itself imported**.
 - Search is substring matching, **not semantic retrieval**; no local vector DB, LLM synthesis, MCP server or web-crawling in this prototype.
@@ -51,7 +51,7 @@ npm test
 npm run lint
 ```
 
-The tests cover five provider shapes, synthetic ZIP, content dedup/versioning, user-vs-assistant filtering, memory review, cloud upload mocks, stale evidence, digital-self projection and a 5 GB ZIP guard. CI runs the same suite. Tests do not establish end-to-end success with a real Google account, Windows machine or provider export.
+The tests cover five provider shapes, synthetic ZIP, content dedup/versioning, user-vs-assistant filtering, memory review, cloud upload mocks, stale evidence, digital-self projection and a multi-gigabyte ZIP guard. CI runs the same suite. Tests do not establish end-to-end success with a real Google account, Windows machine or provider export.
 
 ## Repo structure
 

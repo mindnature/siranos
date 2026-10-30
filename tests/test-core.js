@@ -5,11 +5,11 @@ const chrome={storage:{local:{get:async()=>config,set:async x=>Object.assign(con
 const ctx={SiranDB,chrome,crypto:globalThis.crypto,TextEncoder,TextDecoder,DecompressionStream,Blob,File,Response,console,setTimeout,Date};
 vm.createContext(ctx);for(const f of ['importer.js','brain.js'])vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx);vm.runInContext('globalThis.Importer=SiranImporter;globalThis.Brain=SiranBrain',ctx);
 (async()=>{
-  const mk=(more='')=>[{id:'chat-1',title:'创业与人生',create_time:1761760000,
+  const mk=(more='')=>[{id:'chat-1',title:'社区活动计划',create_time:1761760000,
     mapping:{
-      a:{message:{author:{role:'user'},content:{parts:['我决定开发自己的AI第二大脑，目标是保存所有聊天原文。']},create_time:1761760000}},
-      b:{message:{author:{role:'assistant'},content:{parts:['我认为你应该投资公司。']},create_time:1761760001}},
-      c:{message:{author:{role:'user'},content:{parts:['我已经完成 Google Drive 授权配置。'+more]},create_time:1761760002}}
+      a:{message:{author:{role:'user'},content:{parts:['我决定整理志愿活动记录，目标是便于成员查询。']},create_time:1761760000}},
+      b:{message:{author:{role:'assistant'},content:{parts:['我建议你整理活动时间表。']},create_time:1761760001}},
+      c:{message:{author:{role:'user'},content:{parts:['我已经完成演示环境的 Google Drive 授权测试。'+more]},create_time:1761760002}}
     }
   }];
   const parsed=await ctx.Importer.parseJSON(JSON.stringify(mk()),'conversations.json');assert.equal(parsed.items.length,1);
@@ -24,7 +24,7 @@ vm.createContext(ctx);for(const f of ['importer.js','brain.js'])vm.runInContext(
   assert.equal((await ctx.SiranDB.memory(first.id)).sourceStale,true);
   assert.ok((await ctx.Brain.listMemories()).length>2);
   await assert.rejects(ctx.Brain.review(first.id,'confirmed'),/原始会话已变更/);
-  const snap=await ctx.Brain.snapshot();assert.equal(snap.schema,'siran.lifeos.brain.v3');
+  const snap=await ctx.Brain.snapshot();assert.equal(snap.schema,'siranos.memory.v1');
   const summary=await ctx.Brain.projectSummary();assert.ok(summary.length>=1);
   const review=await ctx.Brain.weeklyReview(7);assert.ok(review.limitations.includes('仅基于'));
   const restore=await ctx.Brain.importSnapshot(snap);assert.equal(restore.added,0,'snapshot dedup');

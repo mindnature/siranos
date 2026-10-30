@@ -1,9 +1,9 @@
-/* LifeOS V3 local, evidence-first second-brain engine.
+/* SiranOS alpha local evidence-first memory engine.
  * No third-party AI calls. Heuristic candidates require user review.
  */
 const SiranBrain=(()=>{
 'use strict';
-const PROJECTS=['科研与教学','AI与软件开发','商业与创业','艺术与创作','阅读与学习','生活与反思'];
+const PROJECTS=['工作与项目','技术与工具','商业与财务目标','创作与兴趣','学习与成长','生活与反思'];
 const RULES=[
  {type:'行动',re:/(?:我(?:已经|刚刚|终于|实际)(?:完成|做完|发布|提交|交付|上线|测试|注册|购买|制作)|(?:已经|目前)完成了)/},
  {type:'决策',re:/(?:我(?:决定|选择|确定|打算|准备)(?:要|做|采用|尝试|以)?|最终选定|确定采用)/},
@@ -66,8 +66,8 @@ async function weeklyReview(days=7){const end=Date.now(),start=end-days*86400000
  const confirmed=memories.filter(m=>m.status==='confirmed'&&dateMS(m.eventDate)>=start&&dateMS(m.eventDate)<=end);
  const pending=memories.filter(m=>m.status==='pending'&&dateMS(m.eventDate)>=start&&dateMS(m.eventDate)<=end);
  const projects=await projectSummary();return {days,from:new Date(start).toISOString(),to:new Date(end).toISOString(),conversationCount:related.length,confirmed:confirmed.slice(0,60),pendingCount:pending.length,projectCounts:projects,limitations:'仅基于已导入的记录及可信时间信息；不代表已经访问全部历史聊天。确认记忆是用户审核过的线索，不等于实地成果已核验。'};}
-async function snapshot(){return {schema:'siran.lifeos.brain.v3',createdAt:new Date().toISOString(),memories:await SiranDB.listMemories()};}
-async function importSnapshot(obj){if(obj?.schema!=='siran.lifeos.brain.v3'||!Array.isArray(obj.memories))throw new Error('无法识别的记忆快照格式');
+async function snapshot(){return {schema:'siranos.memory.v1',createdAt:new Date().toISOString(),memories:await SiranDB.listMemories()};}
+async function importSnapshot(obj){if(obj?.schema!=='siranos.memory.v1'||!Array.isArray(obj.memories))throw new Error('无法识别的记忆快照格式');
  let added=0,skipped=0;for(const m of obj.memories){if(!m.id||!m.source?.conversationId||!['pending','confirmed','dismissed'].includes(m.status)){skipped++;continue;}
  const existing=await SiranDB.memory(m.id);if(existing){skipped++;continue;}await SiranDB.putMemory({...m,status:m.status,sourceStale:!!m.sourceStale});added++;}
  if(added)await chrome.storage.local.set({brainDirtyAt:new Date().toISOString()});return {added,skipped};}
