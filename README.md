@@ -1,6 +1,8 @@
 # SiranOS · Your private local second brain
 
-**SiranOS 0.5 Alpha — install once with Codex / WorkBuddy, use your own files, retrieve evidence over local MCP. Google Drive is optional.**
+**SiranOS 0.5.1 Alpha — stability/security fixes on the local-first second brain. Install once with Codex / WorkBuddy, use your own files, retrieve evidence over local MCP. Google Drive is optional.**
+
+**0.5.1 fixes:** repaired source recovery and re-review, symlink-safe report reads, correct latest report selection, content-hash change detection, complete approved-memory export with paginated MCP response, and idempotent initialization with custom scheduler home. See [release fixes](docs/RELEASE-0.5.1.md). This is still a draft alpha, not a production security certification.
 
 ## Local-first quick start (recommended)
 

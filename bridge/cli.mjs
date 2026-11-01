@@ -15,8 +15,8 @@ const json=x=>console.log(JSON.stringify(x,null,2));
 const cliQuote=s=>'"'+s.replaceAll('\"','')+'"';
 try{
   if(cmd==='init'){
-    const frequency=flag('--frequency')||'weekly';
-    const result=await initWorkspace({root:flag('--root')||defaultRoot(),frequency});
+    const frequency=flag('--frequency');
+    const result=await initWorkspace({root:flag('--root'),frequency});
     json(result);
     if(process.argv.includes('--install-schedule'))json(await installSchedule());
   }else if(cmd==='tick')json(await refreshWorkspace({force:process.argv.includes('--force'),manualReport:process.argv.includes('--report-now')}));
