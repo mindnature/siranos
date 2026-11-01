@@ -203,21 +203,35 @@ export async function sync({force=false}={}){
       d.exec('COMMIT');
     }catch(e){d.exec('ROLLBACK');throw e}
   }
+  function markTemporarilyUnavailable(rel,reason){
+    // Retain the last successfully parsed snapshot and approval decision.
+    // Queries suppress documents with an error until successful revalidation.
+    d.prepare('UPDATE documents SET error=? WHERE path=?').run(reason,rel);
+  }
   for(const full of listing.files){
     const rel=safeRel(root,full);seen.add(rel);
     let st;
     try{st=await fsp.stat(full)}catch(e){errors.push({file:rel,reason:e.code});continue}
-    if(st.size>MAX_FILE){skipped++;errors.push({file:rel,reason:'OVER_48_MIB'});invalidate(rel);continue}
-    const old=d.prepare('SELECT mtime,size FROM documents WHERE path=?').get(rel);
-    if(!force&&old&&old.mtime===Math.floor(st.mtimeMs)&&old.size===st.size){unchanged++;continue}
-    let data,rows;
-    try{
-      data=await fsp.readFile(full);
-      rows=path.extname(full).toLowerCase()==='.pdf'?chunkText(pdfText(full),path.basename(rel)):path.extname(full).toLowerCase()==='.docx'?chunkText(docxText(data),path.basename(rel)):parseText(data,rel);
-    }catch(e){skipped++;errors.push({file:rel,reason:maxText(String(e.message||e),100)});invalidate(rel);continue}
+    if(st.size>MAX_FILE){skipped++;errors.push({file:rel,reason:'OVER_48_MIB'});markTemporarilyUnavailable(rel,'OVER_48_MIB');continue}
+    // Verify a content hash even when size and mtime are unchanged: cloud sync,
+    // deterministic file builds and restored mtimes otherwise hide updates.
+    const old=d.prepare('SELECT hash,mtime,size,error FROM documents WHERE path=?').get(rel);
+    let data;
+    try{data=await fsp.readFile(full)}catch(e){const reason=maxText(String(e.message||e),100);skipped++;errors.push({file:rel,reason});markTemporarilyUnavailable(rel,reason);continue}
+    // Hash first; re-parse expensive PDF / DOCX files only when their bytes change.
     const hash=digest(data);
     const actual=d.prepare('SELECT hash FROM documents WHERE path=?').get(rel);
-    if(actual?.hash===hash){d.prepare('UPDATE documents SET mtime=?,size=? WHERE path=?').run(Math.floor(st.mtimeMs),st.size,rel);unchanged++;continue}
+    if(actual?.hash===hash){
+      d.prepare('UPDATE documents SET mtime=?,size=?,error=NULL WHERE path=?').run(Math.floor(st.mtimeMs),st.size,rel);
+      // Old stale entries (e.g. deleted/re-imported in pre-0.5.1 builds) can be
+      // reviewed again. Never silently restore an approval after true deletion.
+      d.prepare("UPDATE memories SET status='pending',approved_at=NULL WHERE status='stale' AND source_hash=? AND source_id IN (SELECT id FROM chunks WHERE source_path=?)").run(hash,rel);
+      unchanged++;continue;
+    }
+    let rows;
+    try{
+      rows=path.extname(full).toLowerCase()==='.pdf'?chunkText(pdfText(full),path.basename(rel)):path.extname(full).toLowerCase()==='.docx'?chunkText(docxText(data),path.basename(rel)):parseText(data,rel);
+    }catch(e){const reason=maxText(String(e.message||e),100);skipped++;errors.push({file:rel,reason});markTemporarilyUnavailable(rel,reason);continue}
     d.exec('BEGIN IMMEDIATE');
     try{
       d.prepare("UPDATE memories SET status='stale' WHERE source_id IN (SELECT id FROM chunks WHERE source_path=?) AND source_hash<>?").run(rel,hash);
@@ -229,7 +243,7 @@ export async function sync({force=false}={}){
       const put=d.prepare(`INSERT INTO chunks(id,source_path,ordinal,text,role,title,line_start,line_end,event_time) VALUES(?,?,?,?,?,?,?,?,?)`);
       const putFts=d.prepare('INSERT INTO chunks_fts(chunk_id,text) VALUES(?,?)');
       rows.slice(0,30000).forEach((r,i)=>{const id=digest(rel+':'+i+':'+r.text);put.run(id,rel,i,r.text,r.role||'document',r.title||path.basename(rel),r.lineStart??null,r.lineEnd??null,r.eventTime||null);putFts.run(id,r.text)});
-      const putMem=d.prepare(`INSERT INTO memories(id,source_id,excerpt,kind,status,source_hash,created_at) VALUES(?,?,?,?,'pending',?,?) ON CONFLICT(id) DO UPDATE SET source_hash=excluded.source_hash, status='pending', approved_at=NULL WHERE memories.source_hash<>excluded.source_hash`);
+      const putMem=d.prepare(`INSERT INTO memories(id,source_id,excerpt,kind,status,source_hash,created_at) VALUES(?,?,?,?,'pending',?,?) ON CONFLICT(id) DO UPDATE SET source_hash=excluded.source_hash, status='pending', approved_at=NULL WHERE memories.source_hash<>excluded.source_hash OR memories.status='stale'`);
       for(const x of generateMemories(rows,rel,hash)){const res=putMem.run(x.id,x.sourceId,x.excerpt,x.kind,hash,new Date().toISOString());memoriesAdded+=Number(res.changes)}
       d.exec('COMMIT');indexed++;
     }catch(e){d.exec('ROLLBACK');errors.push({file:rel,reason:maxText(String(e.message||e),100)})}
@@ -258,12 +272,12 @@ export function search(query,{limit=8,role='all'}={}){
   if(triples.length){
     const fts=triples.map(x=>'"'+x.replaceAll('"','')+'"').join(' OR ');
     try{
-      rows=d.prepare(`SELECT c.*, bm25(chunks_fts) AS rank FROM chunks_fts JOIN chunks c ON c.id=chunks_fts.chunk_id WHERE chunks_fts MATCH ? AND (?='all' OR c.role=?) ORDER BY rank ASC LIMIT ?`).all(fts,role,role,n*5);
+      rows=d.prepare(`SELECT c.*, bm25(chunks_fts) AS rank FROM chunks_fts JOIN chunks c ON c.id=chunks_fts.chunk_id WHERE chunks_fts MATCH ? AND (?='all' OR c.role=?) AND EXISTS (SELECT 1 FROM documents d WHERE d.path=c.source_path AND d.error IS NULL) ORDER BY rank ASC LIMIT ?`).all(fts,role,role,n*5);
     }catch{/* fallback below */}
   }
   if(!rows.length){
     const escaped=q.replaceAll('%','\\%').replaceAll('_','\\_');
-    rows=d.prepare(`SELECT * FROM chunks WHERE text LIKE ? ESCAPE '\\' AND (?='all' OR role=?) LIMIT ?`).all('%'+escaped+'%',role,role,n*5);
+    rows=d.prepare(`SELECT * FROM chunks WHERE text LIKE ? ESCAPE '\\' AND (?='all' OR role=?) AND EXISTS (SELECT 1 FROM documents d WHERE d.path=chunks.source_path AND d.error IS NULL) LIMIT ?`).all('%'+escaped+'%',role,role,n*5);
   }
   const queryWords=words.length?words:[q];
   rows.sort((a,b)=>{
@@ -272,8 +286,17 @@ export function search(query,{limit=8,role='all'}={}){
   });
   return rows.slice(0,n).map(x=>({evidence_id:x.id,source:x.source_path,title:x.title,role:x.role,line_start:x.line_start,line_end:x.line_end,date:x.event_time||null,quote:maxText(x.text,1100)}));
 }
-export function evidence(id){const r=database().prepare('SELECT * FROM chunks WHERE id=?').get(String(id));return r?{evidence_id:r.id,source:r.source_path,title:r.title,role:r.role,line_start:r.line_start,line_end:r.line_end,text:maxText(r.text,9000),event_time:r.event_time}:null}
+export function evidence(id){const r=database().prepare('SELECT c.* FROM chunks c JOIN documents d ON d.path=c.source_path WHERE c.id=? AND d.error IS NULL').get(String(id));return r?{evidence_id:r.id,source:r.source_path,title:r.title,role:r.role,line_start:r.line_start,line_end:r.line_end,text:maxText(r.text,9000),event_time:r.event_time}:null}
 export function candidates(limit=30){return database().prepare("SELECT id,excerpt,kind,status,created_at FROM memories WHERE status='pending' ORDER BY created_at DESC LIMIT ?").all(Math.max(1,Math.min(100,Number(limit)||30)))}
-export function review(id,action){if(!['confirmed','dismissed'].includes(action))throw Error('Invalid review action');const d=database();const row=d.prepare('SELECT * FROM memories WHERE id=?').get(String(id));if(!row||row.status==='stale')throw Error('Memory not found or source stale');const matched=d.prepare('SELECT d.hash FROM chunks c JOIN documents d ON d.path=c.source_path WHERE c.id=?').get(row.source_id);if(!matched||matched.hash!==row.source_hash)throw Error('Source changed; cannot confirm');d.prepare('UPDATE memories SET status=?,approved_at=? WHERE id=?').run(action,new Date().toISOString(),id);return {id,status:action}}
-export function profile(){const d=database();const confirmed=d.prepare(`SELECT m.id,m.excerpt,m.kind,c.source_path,c.id evidence_id FROM memories m JOIN chunks c ON c.id=m.source_id JOIN documents d ON d.path=c.source_path WHERE m.status='confirmed' AND m.source_hash=d.hash ORDER BY m.approved_at DESC LIMIT 100`).all();return {status:'human_reviewed_statements_not_independently_verified',memories:confirmed,pending:d.prepare("SELECT COUNT(*) n FROM memories WHERE status='pending'").get().n};}
+export function review(id,action){if(!['confirmed','dismissed'].includes(action))throw Error('Invalid review action');const d=database();const row=d.prepare('SELECT * FROM memories WHERE id=?').get(String(id));if(!row||row.status==='stale')throw Error('Memory not found or source stale');const matched=d.prepare('SELECT d.hash FROM chunks c JOIN documents d ON d.path=c.source_path WHERE c.id=? AND d.error IS NULL').get(row.source_id);if(!matched||matched.hash!==row.source_hash)throw Error('Source changed; cannot confirm');d.prepare('UPDATE memories SET status=?,approved_at=? WHERE id=?').run(action,new Date().toISOString(),id);return {id,status:action}}
+export function profile({limit=null,offset=0}={}){
+  const d=database();
+  const where="FROM memories m JOIN chunks c ON c.id=m.source_id JOIN documents d ON d.path=c.source_path WHERE m.status='confirmed' AND m.source_hash=d.hash AND d.error IS NULL";
+  const total=d.prepare('SELECT COUNT(*) AS n '+where).get().n;
+  const start=Math.max(0,Number(offset)||0);
+  const pageSize=limit==null?null:Math.max(1,Math.min(500,Number(limit)||100));
+  const sql='SELECT m.id,m.excerpt,m.kind,c.source_path,c.id evidence_id '+where+' ORDER BY m.approved_at DESC,m.id ASC'+(pageSize==null?'':' LIMIT ? OFFSET ?');
+  const memories=pageSize==null?d.prepare(sql).all():d.prepare(sql).all(pageSize,start);
+  return {status:'human_reviewed_statements_not_independently_verified',memories,total,offset:start,returned:memories.length,hasMore:pageSize!=null&&start+memories.length<total,pending:d.prepare("SELECT COUNT(*) n FROM memories WHERE status='pending'").get().n};
+}
 export function status(){const d=database();const counts=d.prepare('SELECT (SELECT COUNT(*) FROM documents) docs,(SELECT COUNT(*) FROM chunks) chunks,(SELECT COUNT(*) FROM memories WHERE status=\'confirmed\') confirmed,(SELECT COUNT(*) FROM memories WHERE status=\'pending\') pending').get();return {...counts,dataLocation:HOME,sourceFolder:configuration().sourceFolder,lastSync:d.prepare("SELECT value FROM settings WHERE key='last_sync'").get()?.value||null,limits:{maxFileMiB:48,formats:[...EXT]}}}

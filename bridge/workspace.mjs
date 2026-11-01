@@ -34,10 +34,10 @@ export function workspace(){
   if(x.schema!==1||!path.isAbsolute(x.root)||!ensureSchedule(x.frequency))throw Error('Invalid SiranOS workspace configuration');
   return x;
 }
-export async function initWorkspace({root=defaultRoot(),frequency='weekly'}={}){
-  ensureSchedule(frequency);
+export async function initWorkspace({root,frequency}={}){
   const prev=workspace();
-  const absolute=path.resolve(root);
+  const effectiveFrequency=ensureSchedule(frequency??prev?.frequency??'weekly');
+  const absolute=path.resolve(root??prev?.root??defaultRoot());
   // An existing user workspace must never be replaced silently.
   if(prev&&path.resolve(prev.root)!==absolute)throw Error('A workspace already exists. Use its original folder; data migration must be explicit.');
   await fsp.mkdir(absolute,{recursive:true,mode:0o700});
@@ -48,13 +48,13 @@ export async function initWorkspace({root=defaultRoot(),frequency='weekly'}={}){
   let cfg=null;try{cfg=configuration()}catch(e){if(!/Not configured/.test(String(e.message)))throw e}
   if(cfg&&path.resolve(cfg.sourceFolder)!==inbox)throw Error('Existing source folder is configured. Refusing to replace it automatically. Use separate SIRANOS_HOME or migrate explicitly.');
   if(!cfg)await configure(inbox);
-  const state=prev||{schema:1,root:base,createdAt:nowISO(new Date()),frequency};
-  state.frequency=frequency;
+  const state=prev||{schema:1,root:base,createdAt:nowISO(new Date()),frequency:effectiveFrequency};
+  state.frequency=effectiveFrequency;
   await fsp.mkdir(dataDirectory(),{recursive:true,mode:0o700});
   await atomic(SETTINGS(),JSON.stringify(state,null,2)+'\n');
   const readme=path.join(base,'README-使用说明.txt');
   if(!fs.existsSync(readme))await atomic(readme,'将你自己拥有或有权处理的聊天导出、笔记和知识文件放入此处。\n运行 siranos tick 或等待已安装的定时任务。\n注意：SiranOS 不会自动验证 AI 生成的叙述；个人记忆必须人工审核。\n');
-  return {root:base,inbox,frequency,store:dataDirectory(),next:['node bridge/cli.mjs tick','node bridge/cli.mjs schedule-install','node bridge/cli.mjs integration']};
+  return {root:base,inbox,frequency:effectiveFrequency,store:dataDirectory(),next:['node bridge/cli.mjs tick','node bridge/cli.mjs schedule-install','node bridge/cli.mjs integration']};
 }
 export async function setFrequency(frequency){
   const s=workspace();if(!s)throw Error('Run init first');s.frequency=ensureSchedule(frequency);
@@ -83,7 +83,7 @@ const groupNames={goal:'目标',decision:'决定',preference:'偏好',reflection
 function memoryText(p,date){const xs=p.memories||[];return heading('长期记忆（已人工确认）',date)+`\n已确认 ${xs.length} 条；待审核 ${p.pending} 条。未经审核的内容不会作为长期事实输出。\n\n`+(xs.length?xs.map(citeMemory).join('\n---\n\n'):'暂无已确认记忆。使用 `node bridge/cli.mjs memories` 查看候选，再使用 `approve <id>` 确认。\n')}
 function personaText(p,date){const xs=p.memories||[];let s=heading('数字人格 · 来源可追溯的个人陈述',date)+ '\n这是经用户确认的历史陈述集合，不是人格诊断。旧观点可能已经变化，请检查时间与原话。\n';for(const [key,title] of Object.entries(groupNames)){const ms=xs.filter(x=>x.kind===key);s+=`\n## ${title}（${ms.length}）\n\n`+(ms.length?ms.map(citeMemory).join('\n'):'暂无已确认记录。\n')}return s}
 function projectsText(p,date){const xs=(p.memories||[]).filter(m=>['goal','decision'].includes(m.kind));return heading('项目与目标线索',date)+'\n本页不是项目完成情况证明。下面仅列出经人工确认的目标或决定；项目名称、负责人及进度需要后续单独登记。\n\n'+(xs.length?xs.map(citeMemory).join('\n'):'尚无已确认的项目或目标线索。\n')}
-function contextText(p,date){const ms=(p.memories||[]).slice(0,60);return heading('授权 AI 使用的最小上下文（本地生成）',date)+'\n**安全提醒：此文件包含私人陈述。只有你主动配置 MCP 或明确共享时才允许 AI 客户端读取。不要上传到公开 GitHub。**\n\n'+(ms.length?ms.map(x=>`- [${safeMd(x.kind)}] ${safeMd(x.excerpt)} （证据ID：${safeOneLine(x.evidence_id)}）`).join('\n')+'\n':'暂无已确认记忆。\n')}
+function contextText(p,date){const ms=(p.memories||[]).slice(0,60);return heading('授权 AI 使用的最小上下文（本地生成）',date)+`\n本文件为精简视图：展示最近 ${ms.length} / ${p.memories?.length||0} 条已批准记忆；完整记录参见 03_长期记忆。\n`+'\n**安全提醒：此文件包含私人陈述。只有你主动配置 MCP 或明确共享时才允许 AI 客户端读取。不要上传到公开 GitHub。**\n\n'+(ms.length?ms.map(x=>`- [${safeMd(x.kind)}] ${safeMd(x.excerpt)} （证据ID：${safeOneLine(x.evidence_id)}）`).join('\n')+'\n':'暂无已确认记忆。\n')}
 function reportText({p,date,periodKey,updates,previousDate,syncResult,docCount}){
   const max=80;
   const x=heading(`第二大脑 · ${periodKey} 增量复盘`,date)+`\n分析窗口：${previousDate||'首次建立快照'} 至 ${nowISO(date)}。本报告按**实际扫描与快照差异**编写，不推断未记录的活动。\n\n`+
@@ -99,6 +99,27 @@ function reportText({p,date,periodKey,updates,previousDate,syncResult,docCount})
 }
 function requireIntactFolders(root){
   for(const name of Object.values(FOLDERS)){const item=path.join(root,name);const st=fs.lstatSync(item);if(st.isSymbolicLink()||!st.isDirectory())throw Error('Workspace directory is missing or unsafe: '+name)}
+}
+const REPORT_LIMIT=2*1024*1024;
+function secureTextFile(root,folder,name){
+  const dir=path.join(root,folder);
+  const target=path.join(dir,name);
+  const flags=fs.constants.O_RDONLY|(fs.constants.O_NOFOLLOW||0);
+  // A directory symlink is already rejected by requireIntactFolders.
+  // Do not follow a report-file symlink even if the destination is readable.
+  const st=fs.lstatSync(target);
+  if(st.isSymbolicLink()||!st.isFile()||st.size>REPORT_LIMIT)throw Error('Unsafe or oversized knowledge file: '+name);
+  const fd=fs.openSync(target,flags);
+  try{const actual=fs.fstatSync(fd);if(!actual.isFile()||actual.size>REPORT_LIMIT||actual.dev!==st.dev||actual.ino!==st.ino)throw Error('Knowledge file changed during open: '+name);
+    return fs.readFileSync(fd,'utf8');
+  }finally{fs.closeSync(fd)}
+}
+function generatedTime(root,folder,name){
+  const body=secureTextFile(root,folder,name);
+  const match=body.slice(0,1000).match(/生成时间：([^\n]+)/);
+  const time=match?Date.parse(match[1]):NaN;
+  if(Number.isFinite(time))return time;
+  return fs.statSync(path.join(root,folder,name)).mtimeMs;
 }
 export async function refreshWorkspace({force=false,now=new Date(),manualReport=false}={}){
   const config=workspace();if(!config)throw Error('Run node bridge/cli.mjs init first');
@@ -134,10 +155,12 @@ export function latestOverview(section='latest'){
   requireIntactFolders(x.root);
   const allowed={profile:path.join(FOLDERS.persona,'digital-self.md'),projects:path.join(FOLDERS.projects,'projects.md'),memories:path.join(FOLDERS.memories,'long-term-memory.md')};
   if(section==='latest'){
-    const files=fs.readdirSync(path.join(x.root,FOLDERS.reviews)).filter(f=>/^\d{4}-(?:W\d{2}|\d{2}|\d{2})\.md$/.test(f)).sort();
+    const files=fs.readdirSync(path.join(x.root,FOLDERS.reviews)).filter(f=>/^\d{4}-(?:W\d{2}|\d{2})\.md$|^manual-\d{4}-\d{2}-\d{2}\.md$/.test(f));
     if(!files.length)return {section:'latest',available:false,text:'No periodic report yet; run tick.'};
-    const file=files.at(-1);return {section:'latest',file,text:fs.readFileSync(path.join(x.root,FOLDERS.reviews,file),'utf8').slice(0,18000)};
+    // Chronological generation time, NOT lexical order: W44 sorts after 11.
+    const ranked=files.map(file=>({file,at:generatedTime(x.root,FOLDERS.reviews,file)})).sort((a,b)=>b.at-a.at||b.file.localeCompare(a.file));
+    const file=ranked[0].file;return {section:'latest',file,text:secureTextFile(x.root,FOLDERS.reviews,file).slice(0,18000)};
   }
   if(!Object.hasOwn(allowed,section))throw Error('Unsupported section');
-  const file=path.join(x.root,allowed[section]);return {section,available:fs.existsSync(file),text:fs.existsSync(file)?fs.readFileSync(file,'utf8').slice(0,18000):''};
+  const file=path.join(x.root,allowed[section]);return {section,available:fs.existsSync(file),text:fs.existsSync(file)?secureTextFile(x.root,path.dirname(allowed[section]),path.basename(allowed[section])).slice(0,18000):''};
 }
