@@ -4,6 +4,14 @@
 
 **0.5.1 fixes:** repaired source recovery and re-review, symlink-safe report reads, correct latest report selection, content-hash change detection, complete approved-memory export with paginated MCP response, and idempotent initialization with custom scheduler home. See [release fixes](docs/RELEASE-0.5.1.md). This is still a draft alpha, not a production security certification.
 
+## Windows 一键安装（0.5.1 Alpha）
+
+**新用户首选：** 下载 [Windows one-click 安装包](https://github.com/mindnature/siranos/tree/feat/windows-one-click-0.5.1)，解压后双击 `Install-SiranOS.cmd`。不需要 Git、Docker、Google 或手动输入命令。安装器会自动使用已有 Node.js 22.13+，或从官方 Node.js 下载并校验便携运行时；初始化本地第二大脑、扫描初始资料、在检测到 Codex CLI 时注册本地 MCP。**每天09:00自动检查为单独的明确同意选项**，不是悄悄创建定时任务。详见 [一键安装说明](docs/WINDOWS-ONE-CLICK.md)。
+
+这还是未经数字签名的开源安装脚本，Windows 真实机型/杀毒软件兼容性/首次 MCP 调用的端到端验收尚未完成。只有用户明确授予 Codex 文件访问后，AI 才能调取本机第二大脑。
+
+---
+
 ## Local-first quick start (recommended)
 
 Requires Node.js 22+. Download and extract the repository into a permanent folder. In that folder:

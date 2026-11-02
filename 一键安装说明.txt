@@ -1,0 +1,23 @@
+SiranOS 0.5.1 Windows 双击安装包（早期测试版）
+
+第一步：把整个 ZIP 解压到一个普通文件夹，不能在压缩包预览窗口内运行。
+第二步：双击 Install-SiranOS.cmd。按安装器提示完成操作。
+第三步：安装成功后打开 Documents\SiranOS\01_资料收件箱，放入你自己的聊天导出或知识文档。
+第四步：重新打开 Codex，提问“调用 SiranOS，搜索我的资料并引用原文”。
+
+安装器的行为：
+- 复制公开程序文件到当前 Windows 用户的 %LOCALAPPDATA%\Programs\SiranOS\App-0.5.1。
+- 默认把个人第二大脑放到 %USERPROFILE%\Documents\SiranOS。
+- SQLite 数据库和配置信息放到 %LOCALAPPDATA%\SiranOS\state-0.5.1，与旧版 ~/.siranos 隔离。
+- 如果没有兼容的 Node.js，会从 nodejs.org 下载 Node.js v22.16.0 的便携版，校验官方 SHA256 后使用；不用修改系统全局 Node 配置、一般不需要管理员权限。无网络时无法完成下载。
+- 如果已安装 Codex CLI，自动添加 SiranOS MCP；如果已有同名 MCP 配置，则保留原配置并提示人工核对。
+- Windows 每天9点定时检查需要用户明确输入 YES，同意后才注册。每周生成一次周报（后续可以切换按月或手动）。
+- 不需要 Docker、谷歌云盘、npm install 或独立的收费模型 API。
+- 不会把你的聊天、索引或知识文件上传到 GitHub。
+
+注意事项：
+1. 它是未签名的开源脚本安装包，不是经过微软代码签名认证的 .exe。
+2. 在真实 Windows 10/11 上的端到端安装、计划任务启动和 Codex 重启验证尚未完成。若有安全软件提示，先查看源码，不要关闭杀毒保护。
+3. 默认支持 TXT、Markdown、CSV、部分聊天 JSON、HTML、DOCX。文本型 PDF 需要本机 pdftotext，单文件上限 48MiB，不能直接导入5GB ZIP。
+4. 本地长期记忆需要在 Codex 或 CLI 中人工审核；不会自动把所有聊天记录认作真实个人事实。
+5. 如果已有 Documents\SiranOS 且检测到内容，安装器会尝试建立独立的 Documents\SiranOS-New，绝不主动合并或覆盖旧资料。
